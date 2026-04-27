@@ -10,20 +10,38 @@ import { Toaster } from '@/components/reusables/systemToast'
 import trans from '../../../hooks/fetch.ts'
 import userContext from '../../../hooks/useUser.tsx'
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage } from '@/storage/mmkv'
 
 const checkCode = () => {
   const authContext = useContext(AuthContext)
-  const [password, setPassword] = useState('')
+  const [password2, setPassword2] = useState('')
+  const [password1, setPassword1] = useState('')
   const [available, setAvailable] = useState('')
   const [isLoading, setisLoading] = useState(false)
+  const [misMatchErrorMsg, setMisMatchErrorMsg] = useState(false)
+  const [lengthErrorMsg, setLengthErrorMsg] = useState(false)
   
   const insert_username = async () => {
+    
+    if (password1 !== password2) {
+      setLengthErrorMsg(false)
+      return setMisMatchErrorMsg(true)
+    }
+    
+    const password = password2
+    
     if (password.length <= 6) {
+      setMisMatchErrorMsg(false)
+      return setLengthErrorMsg(true)
+    }
+    
+    if (!authContext.tempUserData.email) {
       return
     }
+    
     try {
       const insert = { 
-        ...authContext.temp_user_data,
+        ...authContext.tempUserData,
         password
       }
       const save = await trans('/api/auth/register', {
@@ -33,7 +51,7 @@ const checkCode = () => {
         }
       })
       if (save.code == 201) {
-        await AsyncStorage.setItem('token', save.token)
+        await storage.set('token', save.token)
         authContext.logIn(save.user)
       }
     } catch (error) {
@@ -77,26 +95,61 @@ const checkCode = () => {
         marginTop: 20,
       }}>
         <Text style={{
-          color: '#6a69fe',
+          color: 'white',
           alignSelf: 'flex-start',
-          fontWeight: 'bold'
-        }}>Password</Text>
+          fontWeight: 'bold',
+          opacity: 0,
+          display: 'none',
+        }}>New password</Text>
         <TextInput 
           placeholderTextColor='darkgray' 
-          placeholder='type...'
-          value={password}
+          placeholder='New password'
+          value={password1}
           secureTextEntry
+          cursorColor='#6a69fe'
+          selectionColor="#6a69fe"
+          autoFocus
           onChangeText={(value) => {
-            setPassword(value)
+            setPassword1(value)
           }}
           style={{
             width: '100%',
             height: 45,
-            borderRadius: 50,
+            borderRadius: 15,
             backgroundColor: '#1d1d1d',
             paddingHorizontal: 15,
             color: 'white',
             marginBottom: 5,
+          }}
+        />
+        
+        <Text style={{
+          color: 'white',
+          alignSelf: 'flex-start',
+          fontWeight: 'bold',
+          marginTop: 0,
+          display: 'none',
+        }}>Re-enter password</Text>
+        
+        <TextInput 
+          placeholderTextColor='darkgray' 
+          placeholder='Re-enter Password'
+          value={password2}
+          secureTextEntry
+          cursorColor='#6a69fe'
+          selectionColor="#6a69fe"
+          onChangeText={(value) => {
+            setPassword2(value)
+          }}
+          style={{
+            width: '100%',
+            height: 45,
+            borderRadius: 15,
+            backgroundColor: '#1d1d1d',
+            paddingHorizontal: 15,
+            color: 'white',
+            marginBottom: 5,
+            marginTop: 10,
           }}
         />
         
@@ -106,10 +159,10 @@ const checkCode = () => {
           flexDirection: 'row',
           alignItems: 'center',
           gap: 5,
-        }}><Info size={15} color='darkgray'/><Text style={{
-            color: 'darkgray',
+        }}><Info size={15} color={misMatchErrorMsg? 'tomato' : lengthErrorMsg? '#ffd200' : 'darkgray'}/><Text style={{
+            color: misMatchErrorMsg? 'tomato' : lengthErrorMsg? '#ffd200' : 'darkgray',
           }}
-        >Must be at least 6 characters</Text></View>
+        >{misMatchErrorMsg? 'Password do not match' : lengthErrorMsg? 'Your password is too short' : 'Must be at least 6 characters'}</Text></View>
         
         <View style={{
           width: '100%',
@@ -122,6 +175,7 @@ const checkCode = () => {
           }}/> 
           <Button onPress={insert_username} title='Next' loading={isLoading} loading_msg='Submitting' style={{
               width: '48.5%',
+              opacity: !password2 || !password1? .5 : 1,
             }}/> 
         </View>
       </View>

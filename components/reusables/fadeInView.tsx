@@ -11,17 +11,19 @@ const FadeInView = ({
   children,
   duration = 1000,
   style,
+  startingOpacity = 0,
+  endingOpacity = 1,
 }) => {
-  const opacity = useSharedValue(0);
+  const opacity = useSharedValue(startingOpacity);
 
   useEffect(() => {
     opacity.value = withRepeat(
-      withTiming(1, {
+      withTiming(endingOpacity, {
         duration,
         easing: Easing.linear,
       }),
-      -1,   // infinite
-      true  // reverse (0 → 1 → 0 → 1 ...)
+      -1,
+      true
     );
   }, []);
 

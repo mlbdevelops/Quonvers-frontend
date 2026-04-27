@@ -8,12 +8,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toast } from "@/utils/toaster/toast.ts"
 import { Toaster } from '@/components/reusables/systemToast'
 import { AuthContext } from '@/utils/authContext'
+import { useCustomAlert } from '../../../../hooks/alert.tsx'
 
 const WriterSearch = () => {
   const authContext = React.useContext(AuthContext)
   const [searchQuery, setSearchQuery] = React.useState('')
   const [loaded, setLoaded] = React.useState(false)
   const [searchHistory, setSearchHistory] = React.useState([])
+  const alert = useCustomAlert()
   const recent_key = 'recent_search_history'
   
   React.useEffect(() => {
@@ -83,6 +85,8 @@ const WriterSearch = () => {
             placeholder='Search...'
             autoFocus
             value={searchQuery}
+            selectionColor='#6a69fe'
+            cursorColor='#6a69fe'
             onSubmitEditing={() => {
               saveToLocalStorage()
             }}
@@ -137,7 +141,18 @@ const WriterSearch = () => {
             
             <TouchableOpacity style={{
               alignSelf: 'flex-end',
-            }} onPress={() => deleteFromHistory(val)}>
+            }} onPress={() => {
+              alert(null, 'Are you sure delete from search history?', [
+                  {
+                    text: 'Cancel'
+                  },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => deleteFromHistory(val)
+                  },
+                ])
+            }}>
               <X color='darkgray' size={15}/>
             </TouchableOpacity>
           </TouchableOpacity>

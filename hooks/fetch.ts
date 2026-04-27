@@ -1,10 +1,10 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage } from '@/storage/mmkv';
 
-type Fetcher = {
+type FetcherProps = {
   url?: string;
   useToken?: boolean;
   headers?: Record<string, string>;
-  method?: string;
+  method?: 'POST' | 'GET' | 'PATCH' | 'DELETE' | 'PUT';
   body?: any;
   toJson?: boolean;
   errMsg?: string;
@@ -17,19 +17,20 @@ export default async function trans(sub_url: string, {
   method = 'POST',
   body,
   toJson = true,
-  errMsg
-}: Fetcher) {
+  errMsg,
+}: FetcherProps) {
   try {
     const localhost = 'http://localhost:4000';
     const prod_url = 'https://exemple.com';
     let userToken: string | null = null;
     if (useToken) {
-      userToken = await AsyncStorage.getItem('token');
+      userToken = await storage.getString('token');
     }
     //console.log(body);
     const req = await fetch(`${localhost}${sub_url}` || `${prod_url}${sub_url}`, {
       method,
       headers: {
+        'Content-Type' : 'application/json',
         ...(useToken && userToken ? { 'token': userToken } : {}),
         ...headers,
       },
@@ -38,6 +39,11 @@ export default async function trans(sub_url: string, {
     const res = toJson ? await req.json() : await req.text();
     return res ?? null;
   } catch (error) {
+    throw new Error(errMsg || 'An error occurred!');
     console.log(error);
+    return {
+      success: false,
+      errMsg
+    };
   }
 }

@@ -9,17 +9,27 @@ import { toast } from "../../../utils/toaster/toast.ts"
 import { Toaster } from '@/components/reusables/systemToast'
 import trans from '../../../hooks/fetch.ts'
 import userContext from '../../../hooks/useUser.tsx'
+import { useCustomAlert } from '@/hooks/alert'
 
 const checkCode = () => {
   const authContext = useContext(AuthContext)
-  const [name, setName] = useState(authContext.temp_user_data.name)
+  const [name, setName] = useState(authContext.tempUserData.name)
   const [isLoading, setisLoading] = useState(false)
+  const alert = useCustomAlert()
+  
+  function hasAnyAlphabet(text) {
+    return /\p{L}/u.test(text)
+  }
   
   const send_code = async () => {
     if (!name) {
       return
     }
-    const insert = authContext.insert_into_temp(name, 'name')
+    console.log(hasAnyAlphabet(name));
+    if (!hasAnyAlphabet(name)) {
+      return alert('Invalid', 'Invalid character detected, please write at least 5 alphabetic letters', [{text: 'Ok', primary:true}])
+    }
+    const insert = authContext.insertIntoTemp(name, 'name')
     if (insert.ok) {
       router.push('/auth/register/username')
     }
@@ -61,7 +71,7 @@ const checkCode = () => {
         marginTop: 20,
       }}>
         <Text style={{
-          color: '#6a69fe',
+          color: 'white',
           alignSelf: 'flex-start',
           fontWeight: 'bold'
         }}>Name</Text>
@@ -69,11 +79,14 @@ const checkCode = () => {
           placeholderTextColor='darkgray' 
           placeholder='eg. Alex Olsen'
           value={name}
+          cursorColor='#6a69fe'
+          selectionColor="#6a69fe"
+          autoFocus
           onChangeText={(value) => setName(value)}
           style={{
             width: '100%',
             height: 45,
-            borderRadius: 50,
+            borderRadius: 15,
             backgroundColor: '#1d1d1d',
             paddingHorizontal: 15,
             color: 'white',

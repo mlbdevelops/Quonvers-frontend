@@ -1,20 +1,26 @@
-import { Stack } from 'expo-router';
-import { View, Text } from 'react-native';
+import { Stack, router } from 'expo-router';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { ArrowLeft } from 'lucide-react-native'
 
 export default function Header({
   title,
   headerTitleAlign,
   headerRightContents,
+  headerRight,
   headerLeft,
   headerRightStyle,
   headerRightMargin = 15,
   headerLeftMargin = 15,
   cornerSpace = true,
-  height
+  height,
+  isBack = false,
+  hd = false,
+  backIcon = (<ArrowLeft color='white'/>)
 }) {
   return (
     <Stack.Screen
       options={{
+        headerShown: hd? true : undefined,
         headerStyle: {
           backgroundColor: '#0a0a0a',
           height: 50,
@@ -28,7 +34,16 @@ export default function Header({
         headerLeft: () => (
           <View style={{
             marginLeft: headerLeftMargin || '',
-          }}>{headerLeft}</View>
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}>
+            {isBack && <TouchableOpacity onPress={() => router.back()} style={{
+              marginRight: 15,
+            }}>
+              {backIcon}
+            </TouchableOpacity>}
+            {headerLeft}
+          </View>
         ) || null,
         headerRight: () => (
           <View style={{ 
@@ -37,7 +52,7 @@ export default function Header({
             marginRight: headerRightMargin || '',
             ...headerRightStyle
           }}>
-            {headerRightContents}
+            {headerRightContents || headerRight}
           </View>
         ),
       }}

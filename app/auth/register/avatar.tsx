@@ -32,7 +32,7 @@ const register = () => {
         if (!email) {
           return
         }
-        authContext.insert_into_temp(email, 'email')
+        authContext.insertIntoTemp(email, 'email')
         setTimeout(() => {
           router.push({
             pathname: '/auth/register/verifEmailCode',

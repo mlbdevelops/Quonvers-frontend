@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableWithoutFeedback, TouchableOpacity } from 'react-native';
 import { Plus, Forward, Share, Copy, AlertTriangle, Trash2, Pen, MessageCircleReply, Type } from 'lucide-react-native';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { AddIcon, CopyIcon, EditIcon, LinkForwardIcon, Delete02Icon, PenIcon, AlertIcon, LinkBackward } from '@hugeicons/core-free-icons';
+import { AddIcon, CopyIcon, EditIcon, LinkForwardIcon, Delete02Icon, PenIcon, AlertIcon, LinkBackwardIcon, PinIcon, InformationCircleIcon } from '@hugeicons/core-free-icons';
 import GlassView from "../glassView.tsx"
 import Animated, {
   useSharedValue,
@@ -12,11 +12,11 @@ import Animated, {
 import { useEffect } from 'react'
 import haptics from '../../hooks/haptics.js'
 const MsgFocus = ({msg, user, onClose, actionTaken}) => {
-  const scale = useSharedValue(0.9)
+  const scale = useSharedValue(0.8)
   const { handleViber } = haptics()
   
   useEffect(() => {
-    handleViber.Light()
+    handleViber.Strong()
     scale.value = withTiming(1, { duration: 120 })
   }, [])
   
@@ -36,33 +36,33 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
   const options = [
     {
       label: 'Reply',
-      icon: <MessageCircleReply size={20} color={'white'}/>,
+      icon: <HugeiconsIcon icon={LinkBackwardIcon} color={'white'} size={22}   />,
       type: 'lucide'
     },
     {
-      label: 'Forward',
-      icon: <HugeiconsIcon icon={LinkForwardIcon} size={20} color={'white'}/>,
-      type: 'huge'
-    },
-    {
       label: 'Edit',
-      icon: <HugeiconsIcon icon={PenIcon} size={20} color={'white'}/>,
+      icon: <HugeiconsIcon icon={PenIcon} color={'white'} size={22}   />,
       display: msg.sender_id === user || false,
       type: 'huge'
     },
     {
       label: 'Copy',
-      icon: <HugeiconsIcon icon={CopyIcon} size={20} color={'white'}/>,
+      icon: <HugeiconsIcon icon={CopyIcon} color={'white'} size={22}   />,
       type: 'huge'
     },
     {
-      label: 'Report',
-      icon: <HugeiconsIcon icon={AlertIcon} size={20} color={'white'}/>,
-      type: 'lucide'
+      label: 'Forward',
+      icon: <HugeiconsIcon icon={LinkForwardIcon} color={'white'} size={22}   />,
+      type: 'huge'
+    },
+    {
+      label: 'Pin',
+      icon: <HugeiconsIcon icon={PinIcon} color={'white'} size={22}   />,
+      type: 'huge'
     },
     {
       label: 'Delete',
-      icon: <HugeiconsIcon icon={Delete02Icon} size={20} color={'tomato'}/>,
+      icon: <HugeiconsIcon icon={Delete02Icon} color={'tomato'}/>,
       display: msg.sender_id === user || false,
       danger: true,
       action: () => actionTaken('delete'),
@@ -70,28 +70,43 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
     },
   ]
   
+  const bottomLineOptions = [
+    {
+      label: 'Info',
+      icon: <HugeiconsIcon icon={InformationCircleIcon} color={'white'} size={22}   />,
+      type: 'huge'
+    },
+    {
+      label: 'Report',
+      icon: <HugeiconsIcon icon={AlertIcon} color={'white'} size={22}   />,
+      type: 'lucide'
+    },
+  ]
+  
   const reactionDiv = {
-    width: '85%',
+    width: '90%',
     height: 50,
     borderRadius: 9999,
     backgroundColor: '#161616',
     flexDirection: 'row',
     alignItems: 'center',
     padding: 5,
-    gap: 4,
+    gap: 8,
     marginHorizontal: 16,
     justifyContent: 'space-evenly',
     alignSelf: msg.sender_id === user? 'flex-end' : 'flex-start',
   }
   
   const actionsDiv = {
-    width: '45%',
+    width: '52%',
+    //maxWidth: 200,
     backgroundColor: '#151515',
     flexDirection: 'column',
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: 20,
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
+    paddingBottom: 0,
     marginHorizontal: 16,
     overflow: 'hidden',
     //height: 100,
@@ -99,12 +114,13 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
   }
   
   return (
-    <Modal transparent animationType='fade'>
+    <Modal onRequestClose={onClose} transparent animationType='fade'>
       <TouchableWithoutFeedback onPress={onClose}>
-        <GlassView viewStyle={{
+        <View style={{
           flex: 1,
           flexDirection: 'column',
           justifyContent: 'center',
+          backgroundColor: 'rgba(0,0,0,0.7)',
         }}>
           <Animated.View
             style={[reactionDiv, animatedStyle]}
@@ -151,12 +167,13 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                paddingHorizontal: 16,
-                height: 40,
+                paddingHorizontal: 20,
+                height: 45.5,
                 //backgroundColor: 'pink',
               }}
             >
               <Text style={{
+                fontSize: 16,
                 color: danger? 'tomato' : 'white'
               }}>
                 {label}
@@ -164,8 +181,45 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
               {icon}
             </TouchableOpacity>
           ))}
+          <View style={{
+            width: '100%',
+            flexDirection: 'row',
+            alignItems: 'center',
+            borderTopWidth: 1,
+            borderColor: '#1d1d1d',
+            height: 40,
+            //backgroundColor: 'white',
+            overflow: 'hidden',
+            //paddingVertical: 7,
+            marginTop: 5
+          }}>
+            {bottomLineOptions.map(({display, label, action, danger, icon}, i) => (
+              <TouchableOpacity key={i} style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 3,
+                //backgroundColor: 'white',
+                //paddingVertical: 7,
+                flex: 1,
+                height: '100%',
+                borderLeftWidth: i == 1? 1 : 0,
+                //borderRightWidth: i == 1? 1 : 0,
+                borderLeftColor: i == 1? '#262626' : null,
+                //borderRightColor: i == 1? '#262626' : null,
+              }} onPress={action || onClose}>
+                {icon}
+                <Text style={{
+                  color: danger? 'tomato' : 'white',
+                  fontSize: 12,
+                  display: 'none',
+                }}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </Animated.View>
-        </GlassView>
+        </View>
       </TouchableWithoutFeedback>
     </Modal>
   );
@@ -187,7 +241,7 @@ const styles = StyleSheet.create({
     gap: 8,
    
     msgTextLeft: {
-      backgroundColor: '#2c1e55',
+      backgroundColor: '#262626',
       borderRadius: 20,
       //borderBottomLeftRadius: 5,
       paddingVertical: 8,

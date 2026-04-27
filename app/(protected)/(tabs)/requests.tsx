@@ -1,31 +1,41 @@
-import { View, Text, TouchableOpacity, Button, Alert, Modal, ActivityIndicator, Image, FlatList, Pressable } from 'react-native'
+import Image from '../../../components/reusables/Image';
+import { View, Text, TouchableOpacity, Button, Alert, Modal, ActivityIndicator, FlatList, Pressable, Image as Img, RefreshControl } from 'react-native'
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { X } from 'lucide-react-native'
-import { BubbleChatIcon, SearchIcon, FavouriteIcon, Notification01Icon, Home03Icon, UserCircleIcon } from '@hugeicons/core-free-icons';
+import { X, Ellipsis } from 'lucide-react-native'
+import { BubbleChatIcon, SearchIcon, FavouriteIcon, Notification01Icon, Home03Icon, UserMultipleIcon } from '@hugeicons/core-free-icons';
 import Header from '@/components/header'
-import { useState, useEffect, useContext } from 'react'
+import { useState, useEffect, useContext, useCallback } from 'react'
 import trans from '@/hooks/fetch'
 import { AuthContext } from '@/utils/authContext'
 import dateFormat from '@/utils/day.js'
 import { toast } from "@/utils/toaster/toast.ts"
 import { Toaster } from '@/components/reusables/systemToast'
 import haptics from '@/hooks/haptics'
+import ChatSkeleton from '@/components/skeletons/chat_skeleton'
+import RequestView from '@/components/reusables/request/requestView'
 
 export default function inbox(){
-  const [notifs, setNotifs] = useState([])
-  const [sentReqs, setSentReqs] = useState([])
+  const [requests, setRequests] = useState([])
+  const [sentRequests, setSentRequests] = useState([])
   const authContext = useContext(AuthContext)
   const [loading, setLoading] = useState(true)
   const [requestMode, setRequestMode] = useState(1)
   const { handleViber } = haptics()
+  const [refreshing, setRefreshing] = useState(false)
   
   useEffect(() => {
     (async () => {
-      await getNotifs()
+      await getrequests()
     })()
   }, [])
   
-  const getNotifs = async () => {
+  const onRefresh = useCallback( async () => {
+    setRefreshing(true)
+    await getrequests()
+    setRefreshing(false)
+  })
+  
+  const getrequests = async () => {
     if (!authContext.user.id) {
       return
     }
@@ -35,7 +45,7 @@ export default function inbox(){
         useToken: true
       })
       if (res.code == 904) {
-        setNotifs((prev) => [...res.data, ...prev])
+        setRequests((prev) => [...res.data, ...prev].filter(r => r.sender_id !== authContext.user.id))
         setLoading(false)
         console.log(res);
       }
@@ -45,12 +55,12 @@ export default function inbox(){
         console.log(res);
       }
       if (res.code == 404) {
-        toast(res.msg)
+        //toast(res.msg)
         setLoading(false)
         console.log(res);
       }
     } catch (err) {
-      toast('Something bad happened, check your network connection and try again.')
+      toast('Failed to load requests.')
       setLoading(false)
     }
     setLoading(false)
@@ -66,7 +76,7 @@ export default function inbox(){
         useToken: true
       })
       if (res.code == 904) {
-        setNotifs((prev) => [...res.data, ...prev])
+        setSentRequests((prev) => [...res.data, ...prev])
         setLoading(false)
         console.log(res);
       }
@@ -81,39 +91,30 @@ export default function inbox(){
         console.log(res);
       }
     } catch (err) {
-      toast('Something bad happened, check your network connection and try again.')
+      toast('Failed to load sent requests.')
       setLoading(false)
     }
     setLoading(false)
   }
   
-  const accept_req = async (receiver, sender, id) => {
-    try {
-      const accept = await trans('/api/chat/createConversation', {
-        headers: {
-          'Content-Type' : 'application/json'
-        },
-        body: { sender, receiver }
-      })
-      if (accept.code == 904) {
-        toast('Request accepted ✓')
-        setNotifs((prev) => prev.filter(n => n.id !== id))
-      }
-    } catch (err) {
-      toast('Something went wrong, try again.')
-    }
+  const accept_req = async (itemId) => {
+    setRequests((prev) => prev.filter(p => p.id !== itemId))
   }
   
   return(
     <View className='flex-1 bg-[#0a0a0a]'>
-      <Toaster/>
+      <Toaster position='bottom'/>
       <Header title='Requests' headerRightContents={
         <View style={{
           flexDirection: 'row',
-          gap: 16
+          gap: 25,
+          alignItems: 'center',
         }}>
           <TouchableOpacity onPress={() => authContext.logOut()}>
-            <HugeiconsIcon color='white' icon={UserCircleIcon} strokeWidth={1.8}/>
+            <Image avatar style={{
+              height: 26,
+              width: 26,
+            }}/> 
           </TouchableOpacity>
         </View>
       }/>
@@ -124,22 +125,21 @@ export default function inbox(){
         flex: 1,
         paddingVertical: 5,
       }}>
-        
         <View style={{
           flexDirection: 'row',
           alignItems: 'center',
           width: '100%',
           borderRadius: 50,
           height: 40,
-          backgroundColor: '#262626',
-          padding: 3,
+          backgroundColor: '#1d1d1db9',
+          padding: 4,
           //borderWidth: 1,
           //borderColor: '#262626',
           justifyContent: 'space-between',
         }}>
           <TouchableOpacity onPress={ async () => { 
+            await setRequestMode(1)
             await handleViber.Medium()
-            setRequestMode(1)
           }} style={{
             height: '100%',
             width: '33%',
@@ -150,11 +150,11 @@ export default function inbox(){
           }}>
             <Text style={{
               color: requestMode == 1? 'black' : 'white',
-            }}>Requests ({notifs.length})</Text>
+            }}>Requests</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={ async () => {
+            await setRequestMode(2)
             await handleViber.Medium()
-            setRequestMode(2)
           }} style={{
             height: '100%',
             width: '33%',
@@ -168,8 +168,8 @@ export default function inbox(){
             }}>Accepted</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={ async () => {
+            await setRequestMode(3)
             await handleViber.Medium()
-            setRequestMode(3)
           }} style={{
             height: '100%',
             width: '33%',
@@ -185,106 +185,70 @@ export default function inbox(){
         </View>
         
         {loading && 
-          <ActivityIndicator 
-            size={'large'} 
-            color='white' 
-          />
+          <View style={{
+            height: '100%',
+            width: '100%',
+          }}>
+            <ChatSkeleton/>
+            <ChatSkeleton/>
+            <ChatSkeleton/>
+            <ChatSkeleton/>
+            <ChatSkeleton/>
+          </View>
         }
         
         <FlatList 
-          data={notifs}
+          data={requests}
           keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl 
+              progressBackgroundColor='#1d1d1d'
+              colors={['white']}
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+            />
+          }
           style={{
             width: '100%',
             flex: 1,
           }}
-          renderItem={({ item }) => (
-            <View onPress={() => accept_req(item.receiver_id, item.sender_id, item.id)} style={{
-              //borderWidth: 1,
-              //borderColor: '#1d1d1db9',
-              width: '100%',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 10,
-              marginBottom: 20,
-              justifyContent: 'space-between',
-            }}>
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 10
-              }}>
-                <Image source={item.sender_avatar? { uri: item.sender_avatar } : require('../../../assets/images/no_profile.png')} style={{
-                  height: 45, 
-                  width: 45,
-                  borderRadius: 50,
-                  //backgroundColor: '#262626',
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                }}/>
-                <View style={{
-                  gap: 2,
-                }}>
-                  <View style={{
-                    flexDirection: 'row',
-                    gap: 5,
-                    alignItems: 'flex-end',
-                  }}>
-                    <Text style={{
-                      fontWeight: 'bold',
-                      color: 'white',
-                      fontSize: 16,
-                    }}>{item.sender_name}</Text>
-                    <Text style={{
-                      color: 'darkgray',
-                      fontSize: 13,
-                    }}>{dateFormat(item.created_at)}</Text>
-                  </View>
-                  <Text style={{
-                    color: 'white',
-                  }}>Sent you a request</Text>
-                </View>
-              </View>
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 10
-              }}>
-                <TouchableOpacity onPress={() => accept_req(item.receiver_id, item.sender_id, item.id)} style={{
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: '#6a69fe',
-                  borderRadius: 13,
-                  padding: 10,
-                  paddingVertical: 8,
-                  height: 35,
-                  width: 80,
-                }}>
-                  <Text style={{
-                    color: 'white',
-                    fontSize: 13,
-                    //padding: 10,
-                  }}>Accept</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity onPress={() => null} style={{
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: '#262626',
-                  borderRadius: 13,
-                  padding: 10,
-                  paddingVertical: 8,
-                  height: 35,
-                  width: 35,
-                }}>
-                  <X color='white' size={15}/>
-                </TouchableOpacity>
-              </View>
-            </View>
+          renderItem={({ item, index }) => (
+            <RequestView
+              key={index}
+              item={item} 
+              isLast={item.id === requests[requests.length - 1].id} 
+              onSubmit={(id) => accept_req(id)}
+              //onDecline={decline_req}
+            />
           )}
         />
       </View>
-      {/*<Button onPress={getNotifs} title='Get your notifications'/>*/}
+      {!loading && !requests.length && <View style={{
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        //backgroundColor: 'red',
+        gap: 5
+      }}>
+        {/*<Img style={{
+          height: 200,
+          width: 200,
+          borderRadius: 50,
+          //backgroundColor: 'white',
+        }} source={require('../../../assets/no_results/no_results_5.jpg')}/>*/}
+        <HugeiconsIcon icon={UserMultipleIcon} size={100} color='white'/>
+        <Text style={{
+          fontSize: 25,
+          color: 'white',
+          fontWeight: 'bold',
+        }}>No request found!</Text>
+        <Text style={{
+          //fontSize: 13,
+          color: 'darkgray',
+        }}>{requestMode == 1? 'Your requests will appear here.' : requestMode == 2? 'Accepted requests will appear here.' : requestMode == 3? 'Sent requests will appear here.' : null}</Text>
+      </View>}
     </View>
   )
 }

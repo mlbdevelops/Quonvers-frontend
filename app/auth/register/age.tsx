@@ -25,7 +25,7 @@ const checkCode = () => {
     if (!age) {
       return
     }
-    const insert = authContext.insert_into_temp(age, 'birthdate')
+    const insert = authContext.insertIntoTemp(age, 'birthdate')
     if (insert.ok) {
       router.push('/auth/register/passw')
     }
@@ -79,7 +79,7 @@ const checkCode = () => {
         marginTop: 20,
       }}>
         <Text style={{
-          color: '#6a69fe',
+          color: 'white',
           alignSelf: 'flex-start',
           fontWeight: 'bold'
         }}>Age</Text>
@@ -88,7 +88,7 @@ const checkCode = () => {
           alignItems: 'center',
           justifyContent: 'space-between',
           width: '100%',
-          gap: 5
+          gap: 10
         }}>
           <TextInput 
             placeholderTextColor='darkgray' 
@@ -96,13 +96,15 @@ const checkCode = () => {
             maxLength={2}
             value={day}
             keyboardType='numeric'
+            cursorColor='#6a69fe'
+            selectionColor="#6a69fe"
             onChangeText={(value) => {
               setDay(value.trim())
             }}
             style={{
-              width: '32%',
+              width: '30%',
               height: 45,
-              borderRadius: 50,
+              borderRadius: 15,
               backgroundColor: '#1d1d1d',
               paddingHorizontal: 15,
               color: 'white',
@@ -115,13 +117,15 @@ const checkCode = () => {
             value={month}
             maxLength={2}
             keyboardType='numeric'
+            cursorColor='#6a69fe'
+            selectionColor="#6a69fe"
             onChangeText={(value) => {
               setMonth(value.trim())
             }}
             style={{
-              width: '32%',
+              width: '30%',
               height: 45,
-              borderRadius: 50,
+              borderRadius: 15,
               backgroundColor: '#1d1d1d',
               paddingHorizontal: 15,
               color: 'white',
@@ -134,13 +138,15 @@ const checkCode = () => {
             keyboardType='numeric'
             value={year}
             maxLength={4}
+            cursorColor='#6a69fe'
+            selectionColor="#6a69fe"
             onChangeText={(value) => {
               setYear(value.trim())
             }}
             style={{
-              width: '32%',
+              width: '30%',
               height: 45,
-              borderRadius: 50,
+              borderRadius: 15,
               backgroundColor: '#1d1d1d',
               paddingHorizontal: 15,
               color: 'white',

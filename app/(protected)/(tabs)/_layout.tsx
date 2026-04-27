@@ -1,8 +1,9 @@
+//import Image from '../components/reusables/Image';
 import { Tabs } from 'expo-router';
 import { useState, useEffect } from 'react';
 import React from 'react';
 import TabBar from '@/components/bottomBar'
-import { ActivityIndicator, View, Text, Pressable } from 'react-native'
+import { ActivityIndicator, View, Text, Pressable, Image } from 'react-native'
 
 export default function TabLayout() {
   const [loading, setLoading] = useState(true)
@@ -19,7 +20,11 @@ export default function TabLayout() {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <ActivityIndicator size='large' color='#6a69fe'/>
+        <Image style={{
+          width: 200,
+          height: 200,
+        }} source={require('../../../assets/images/android-icon-foreground.png')}/>
+        {/*<ActivityIndicator size='small' color='white'/>*/}
       </View>
     )
   }
@@ -34,11 +39,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Chats'
+          title: 'Chats',
+          tabBarBadge: 2
         }}
       />
       <Tabs.Screen
-        name="today"
+        name="status"
       />
       <Tabs.Screen
         name="requests"
@@ -48,4 +54,5 @@ export default function TabLayout() {
       />
     </Tabs>
   );
+
 }

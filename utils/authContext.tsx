@@ -1,118 +1,115 @@
-import { createContext, useState, useEffect } from 'react'
-import { useRouter, SplashScreen } from 'expo-router'
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createContext, useState, useEffect, PropsWithChildren } from 'react'
+import { useRouter } from 'expo-router'
+import { SplashScreen } from 'expo-router'
+import { storage } from '@/storage/mmkv'
 
 SplashScreen.preventAutoHideAsync()
 
+type TempUserData = {
+  email: string
+  name: string
+  username: string
+  password: string
+  birthdate: string
+}
+
 type AuthState = {
-  isLoggedIn: Boolean;
-  isReady: Boolean;
-  user: Object;
-  logIn: () => void;
-  logOut: () => void;
-  temp_user_data: Object;
-  insert_into_temp: () => void,
-};
+  isLoggedIn: boolean
+  isReady: boolean
+  user: any | null
+  logIn: (user: any) => void
+  logOut: () => void
+  tempUserData: TempUserData
+  insertIntoTemp: (data: string, step: keyof TempUserData) => { ok: boolean }
+}
 
 const authStoreKey = 'user'
 
 export const AuthContext = createContext<AuthState>({
   isLoggedIn: false,
-  user: null,
   isReady: false,
+  user: null,
   logIn: () => {},
   logOut: () => {},
-  insert_into_temp: () => {},
-  temp_user_data: {}
-});
-
-export const AuthProvider = ({ children }: PropsWithChildren) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [isReady, setIsReady] = useState(false)
-  const [user, setUser] = useState(null)
-  const [token, setToken] = useState('')
-  const router = useRouter()
-  const temp_user_data = {
+  tempUserData: {
     email: '',
     name: '',
     username: '',
     password: '',
-    birthdate: '',
-  }
+    birthdate: ''
+  },
+  insertIntoTemp: () => ({ ok: false })
+})
+
+export const AuthProvider = ({ children }: PropsWithChildren) => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isReady, setIsReady] = useState(false)
+  const [user, setUser] = useState<any | null>(null)
+  const [tempUserData, setTempUserData] = useState<TempUserData>({
+    email: '',
+    name: '',
+    username: '',
+    password: '',
+    birthdate: ''
+  })
+  const router = useRouter()
   
-  const storeAuthState = async (newState: { isLoggedIn: Boolean, user: Object }) => {
+  const storeAuthState = (newState: { isLoggedIn, user }) => {
     try {
-      const jsonValue = JSON.stringify(newState);
-      await AsyncStorage.setItem(authStoreKey, jsonValue)
+      storage.set(authStoreKey, JSON.stringify(newState))
     } catch (error) {
-      console.error(error);
+      console.error('Failed to store auth state:', error)
     }
   }
   
-  const logIn = (user) => {
+  const logIn = (user: any) => {
     setUser(user)
+    storeAuthState({ isLoggedIn: true, user })
     setIsLoggedIn(true)
-    storeAuthState({ isLoggedIn : true, user })
     router.replace('/(protected)')
   }
   
-  const logOut = async () => {
+  const logOut = () => {
     setIsLoggedIn(false)
     setUser(null)
-    await AsyncStorage.removeItem('user')
-    await AsyncStorage.removeItem('token')
-    storeAuthState({ isLoggedIn : false, user: null })
+    storage.remove(authStoreKey)
     router.replace('/authenticate')
   }
   
-  const insert_into_temp = (data, step) => {
-    step == 'email'? temp_user_data.email = data: null
-    step == 'username'? temp_user_data.username = data : null
-    step == 'name'? temp_user_data.name = data : null
-    step == 'password'? temp_user_data.password = data : null
-    step == 'birthdate'? temp_user_data.birthdate = data : null
-    
-    return {
-      ok: true
-    }
+  const insertIntoTemp = (data: string, step: keyof TempUserData) => {
+    setTempUserData(prev => ({ ...prev, [step]: data }))
+    return { ok: true }
   }
   
   useEffect(() => {
-    const getValueFromStorage = async () => {
-      try {
-        const authStore = await AsyncStorage.getItem(authStoreKey)
-        if (authStore !== null) {
-          const auth = JSON.parse(authStore);
-          setIsLoggedIn(auth.isLoggedIn)
-          setUser(auth.user)
-        }
-      } catch (error) {
-        console.error('👉', error);
+    try {
+      const value = storage.getString(authStoreKey)
+      if (value) {
+        const auth = JSON.parse(value)
+        setUser(auth.user)
+        setIsLoggedIn(auth.isLoggedIn)
       }
+    } catch (error) {
+      console.error('Failed to load auth state:', error)
+    } finally {
       setIsReady(true)
-    }
-    getValueFromStorage()
-  }, [])
-  
-  useEffect(() => {
-    if (isReady) {
       SplashScreen.hideAsync()
     }
-  }, [isReady])
-  
-  
+  }, [])
+
   return (
-    <AuthContext.Provider value={{
-      isReady,
-      isLoggedIn,
-      logIn,
-      logOut,
-      user,
-      temp_user_data,
-      insert_into_temp,
-      token
-    }}>
+    <AuthContext.Provider
+      value={{
+        isLoggedIn,
+        isReady,
+        user,
+        logIn,
+        logOut,
+        tempUserData,
+        insertIntoTemp
+      }}
+    >
       {children}
     </AuthContext.Provider>
-  );
-};
+  )
+}

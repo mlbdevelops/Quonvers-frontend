@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     //marginRight: 10,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: '#262626',
   },
   user_info:{

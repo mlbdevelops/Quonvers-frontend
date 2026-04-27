@@ -2,6 +2,7 @@ type ToastData = {
   id: string
   message: string
   duration: number
+  position: string
 }
 
 type Listener = (toast: ToastData) => void
@@ -23,10 +24,11 @@ export function subscribe(listener: Listener) {
   }
 }
 
-export function toast(message: string, duration = 3000) {
+export function toast(message: string, duration = 3000, position) {
   emit({
     id: generateId(),
     message,
     duration,
+    position,
   })
 }

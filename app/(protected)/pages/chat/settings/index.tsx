@@ -1,6 +1,7 @@
+import Image from '@/components/reusables/Image';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Stack, router } from 'expo-router'
+import { Stack, router, useLocalSearchParams } from 'expo-router'
 import Header from '@/components/header'
 import { ArrowLeft, ChevronRight } from 'lucide-react-native'
 import { HugeiconsIcon } from '@hugeicons/react-native';
@@ -36,12 +37,16 @@ import {
   InLoveIcon,
   AlertIcon,
   Delete02Icon,
-  CopyIcon
+  CopyIcon,
+  VolumeMute02Icon
 } from '@hugeicons/core-free-icons';
 
 const Settings = () => {
-  
-  const options = [
+  const [options, setOptions] = React.useState([])
+  const { avatar, name } = useLocalSearchParams()
+ 
+ React.useEffect(() => {
+    setOptions([
     {
       label: 'Customization', 
       items: [
@@ -67,7 +72,7 @@ const Settings = () => {
       label: 'Privacy', 
       items: [
         { 
-          label: "Disappearing message",
+          label: "Disappearing messages",
           icon: <HugeiconsIcon color='white' icon={Clock01Icon}/>,
         },
         { 
@@ -75,16 +80,16 @@ const Settings = () => {
           icon: <HugeiconsIcon color='white' icon={FilterHorizontalIcon}/>,
         },
         { 
-          label: "Allow message forwarding",
+          label: "Read receipts", 
+          icon: <HugeiconsIcon color='white' icon={ViewIcon}/>, 
+        },
+        { 
+          label: "Forwardings",
           icon: <HugeiconsIcon color='white' icon={LinkForwardIcon}/>,
         },
         { 
-          label: "Allow message copying",
-          icon: <HugeiconsIcon color='white' icon={CopyIcon}/>,
-        },
-        { 
-          label: "Read receipts", 
-          icon: <HugeiconsIcon color='white' icon={ViewIcon}/>, 
+          label: "Mute",
+          icon: <HugeiconsIcon color='white' icon={VolumeMute02Icon}/>,
         },
       ]
     },
@@ -119,7 +124,8 @@ const Settings = () => {
         }
       ]
     },
-  ]
+  ])
+  }, [])
   
   const line_actions = [
     {
@@ -142,10 +148,13 @@ const Settings = () => {
   ]
   
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
+      style={styles.container}>
       <Stack.Screen
         options={{
-          headerShown: true
+          headerShown: true,
         }}
       />
       <Header headerLeft={
@@ -176,12 +185,12 @@ const Settings = () => {
           gap: 5,
           marginTop: 15,
         }}>
-          <View style={{
+          <Image style={{
             height: 100,
             width: 100,
             borderRadius: 100,
             backgroundColor: '#262626',
-          }}></View>
+          }} src={avatar}/>
           <View style={{
             gap: 5,
             alignItems: 'center',
@@ -191,7 +200,7 @@ const Settings = () => {
               fontSize: 20,
               fontWeight: 'bold',
               marginTop: 5,
-            }}>John Doe</Text>
+            }}>{name}</Text>
           </View>
         </View>
         <View style={{
@@ -238,7 +247,11 @@ const Settings = () => {
                   color: 'darkgray',
                   marginHorizontal: 5,
                 }}>{label}</Text>
-                <View>
+                <View style={{
+                  backgroundColor: '#171717',
+                  borderRadius: 20,
+                  padding: 10,
+                }}>
                   {items.map(({label, icon, danger}, i) => (
                     <TouchableOpacity key={i} style={{
                       width: '100%',

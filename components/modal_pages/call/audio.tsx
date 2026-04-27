@@ -1,17 +1,39 @@
+import Image from '../../reusables/Image';
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ImageBackground } from 'react-native';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { VideoIcon, MicOff02Icon, VolumeHighIcon,  CallEnd04Icon, Video02Icon, UserAdd02Icon, ArrowShrink02Icon } from '@hugeicons/core-free-icons';
-import { Ellipsis } from 'lucide-react-native'
+import { VideoIcon, MicOff02Icon, VolumeHighIcon,  CallEnd04Icon, Video02Icon, UserAdd02Icon, ArrowShrink02Icon, StarsIcon } from '@hugeicons/core-free-icons';
+import { Ellipsis, ArrowLeft } from 'lucide-react-native'
 import { useState, useEffect } from 'react'
 import haptics from '@/hooks/haptics'
 
-const Audio = ({visible, onClose}) => {
+const Audio = ({visible, onClose, chat}) => {
   const [isStrongSound, setisStrongSound] = useState(false)
   const [isMicOff, setisMicOff] = useState(false)
   const { handleViber } = haptics()
+  const [callState, setCallState] = useState('Calling...')
+  const { name: chat_name, avatar, chat_id, wall } = chat
+  
+  useEffect(() => {
+    setTimeout(() => {
+      setCallState('Ringing...')
+    }, 3000);
+  }, [])
+  
+  useEffect(() => {
+    setTimeout(() => {
+      
+    }, 5000);
+  }, [callState])
+  
+  
   return (
-    <Modal visible={visible} animationType='fade'>
+    <Modal visible={visible} onRequestClose={onClose} animationType='fade'>
+      <ImageBackground containerStyle={{
+        backgroundColor: 'black',
+      }} source={{ uri: avatar || wall}} resizeMode='containe' style={{
+        flex: 1,
+      }}>
       <View style={{
         flexDirection: 'column',
         width: '100%',
@@ -27,34 +49,58 @@ const Audio = ({visible, onClose}) => {
         }}>
           <View style={{
             width: '100%',
-            padding: 10,
+            //padding: 10,
             //height: 20,
             paddingVertical: 5,
             marginBottom: 50,
+            marginTop: 23,
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
+            //borderWidth: 1,
+            //borderColor: 'white',
           }}>
             <TouchableOpacity onPress={onClose} style={{
-              backgroundColor: '#1d1d1d',
-              borderRadius: 50,
-              height: 50,
-              width: 50,
+              //backgroundColor: '#313237',
+              borderRadius: 23,
+              //height: 50,
+              ///width: 50,
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <HugeiconsIcon 
+              <ArrowLeft
                 color='white'
-                icon={ArrowShrink02Icon}
+                //icon={ArrowShrink02Icon}
               />
             </TouchableOpacity>
+            <TouchableOpacity onPress={() => {
+                handleViber.Medium()
+              }} style={{
+                //backgroundColor: '#313237',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                borderRadius: 50,
+                height: 25,
+                width: 25,
+                borderWidth: 1,
+                borderColor: 'white',
+              }}
+            >
+              <Ellipsis size={17.5} color='white' />
+            </TouchableOpacity>
           </View>
-          <View style={{
+          
+          <View ></View>
+          
+          <Image src={avatar} style={{
             height: 150,
             width: 150,
             borderRadius: 300,
             backgroundColor: '#262626',
-          }}></View>
+          }}/>
+          
           <TouchableOpacity style={{
             gap: 5,
             alignItems: 'center',
@@ -64,29 +110,29 @@ const Audio = ({visible, onClose}) => {
               fontSize: 30,
               fontWeight: 'bold',
               marginTop: 5,
-            }}>Elon musk</Text>
+            }}>{chat_name}</Text>
           </TouchableOpacity>
           <Text style={{
             color: 'darkgray',
             //fontWeight: 'bold',
-            fontSize: 20,
+            fontSize: 15,
             marginTop: 3,
-          }}>0:03</Text>
+          }}>{callState}</Text>
         </View>
         <View style={{
           height: 71,
           width: '100%',
-          backgroundColor: '#1d1d1d43',
-          borderRadius: 50,
+          backgroundColor: '#1D1E22',
+          borderRadius: 30,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-evenly',
-          borderWidth: 1,
-          borderColor: '#111111',
+          //borderWidth: 1,
+          //borderColor: '#111111',
         }}>
           <TouchableOpacity style={{
-            backgroundColor: '#1d1d1d',
-            borderRadius: 50,
+            backgroundColor: '#313237',
+            borderRadius: 23,
             height: 50,
             width: 50,
             alignItems: 'center',
@@ -94,12 +140,12 @@ const Audio = ({visible, onClose}) => {
           }}>
             <HugeiconsIcon 
               color='white'
-              icon={UserAdd02Icon}
+              icon={StarsIcon}
             />
           </TouchableOpacity>
           <TouchableOpacity style={{
-            backgroundColor: '#1d1d1d',
-            borderRadius: 50,
+            backgroundColor: '#313237',
+            borderRadius: 23,
             height: 50,
             width: 50,
             alignItems: 'center',
@@ -114,8 +160,8 @@ const Audio = ({visible, onClose}) => {
             await handleViber.Light()
             setisStrongSound((prev) => !prev)
           }} style={{
-            backgroundColor: isStrongSound? '#6a69fe' : '#1d1d1d',
-            borderRadius: 50,
+            backgroundColor: isStrongSound? '#6a69fe' : '#313237',
+            borderRadius: 23,
             height: 50,
             width: 50,
             alignItems: 'center',
@@ -130,8 +176,8 @@ const Audio = ({visible, onClose}) => {
             await handleViber.Light()
             setisMicOff((prev) => !prev)
           }} style={{
-            backgroundColor: isMicOff? '#6a69fe' : '#1d1d1d',
-            borderRadius: 50,
+            backgroundColor: isMicOff? '#6a69fe' : '#313237',
+            borderRadius: 23,
             height: 50,
             width: 50,
             alignItems: 'center',
@@ -148,21 +194,22 @@ const Audio = ({visible, onClose}) => {
             onClose()
             await handleViber.Light()
           }} style={{
-            backgroundColor: '#1d1d1d',
-            borderRadius: 50,
+            backgroundColor: 'tomato',
+            borderRadius: 23,
             height: 50,
             width: 50,
             alignItems: 'center',
             justifyContent: 'center',
           }}>
             <HugeiconsIcon 
-              color='tomato'
-              fill='tomato'
+              color='white'
+              //fill='tomato'
               icon={CallEnd04Icon}
             />
           </TouchableOpacity>
         </View>
       </View>
+      </ImageBackground>
     </Modal>
   );
 };
@@ -173,7 +220,7 @@ const styles = StyleSheet.create({
     padding: 15,
     paddingVertical: 20,
     alignItems: 'center',
-    backgroundColor: 'black',
+    backgroundColor: '#000000',
     flexDirection: 'column',
   },
 });

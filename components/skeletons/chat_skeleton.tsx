@@ -1,9 +1,10 @@
 import { View, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
-
+import FadeInView from '@/components/reusables/fadeInView'
 export default function ChatSkeleton() {
   return(
-    <View
+    <FadeInView
+      startingOpacity={.1}
       style={styles.box}
     >
       <View 
@@ -37,7 +38,7 @@ export default function ChatSkeleton() {
           >
         </View>
       </View>
-    </View>
+    </FadeInView>
   )
 }
 

@@ -1,7 +1,8 @@
+import Image from '../../../../components/reusables/Image';
 import React, { useContext, useState, useEffect } from 'react'
 import { useLocalSearchParams } from 'expo-router'
 import trans from '@/hooks/fetch'
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, TouchableHighlight, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, TouchableHighlight, Pressable } from 'react-native';
 import { ArrowLeft, X } from 'lucide-react-native'
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { SearchIcon, Mic02Icon, FavouriteIcon, UserIcon } from '@hugeicons/core-free-icons';
@@ -144,7 +145,7 @@ const SearchValue = () => {
           
           <Text style={{
             color: queryIndex == 3? 'black' : 'white'
-          }}>Friends</Text>
+          }}>chat mates</Text>
         </TouchableOpacity>
       </View>
       <View style={{
@@ -159,11 +160,15 @@ const SearchValue = () => {
       }}>
         {value && <Text style={{
           color: 'white',
-          fontWeight: 'bold',
+          //fontWeight: 'bold',
           //margin: 5,
           marginVertical: 0,
           alignSelf: 'flex-start',
-        }}>Results for "{value}"</Text>}
+          fontSize: 15,
+        }}>Results for <Text style={{
+          color: '#6a69fe',
+          fontWeight: 'bold',
+        }}>{value}</Text> </Text>}
         {noUser? <Text style={{
           color: 'white',
           marginTop: 250,
@@ -183,23 +188,10 @@ const SearchValue = () => {
               gap: 10,
               alignItems: 'center',
             }}>
-              {!item.avatar? <Image source={require('@/assets/images/no_profile.png')} style={{
-                height: 50, 
+              <Image style={{
+                height: 50,
                 width: 50,
-                borderRadius: 50,
-                //backgroundColor: '#262626',
-                alignItems: 'center', 
-                justifyContent: 'center',
-              }}/> : 
-              <Image source={{uri: item.avatar}} style={{
-                height: 50, 
-                width: 50,
-                borderRadius: 50,
-                //backgroundColor: '#262626',
-                alignItems: 'center', 
-                justifyContent: 'center',
-              }}/>
-              }
+              }} src={item.avatar}/>
               <View style={{
                 flexDirection: 'column',
                 gap: 2,
@@ -207,6 +199,7 @@ const SearchValue = () => {
                 <Text style={{
                   color: 'white',
                   fontWeight: 'bold',
+                  fontSize: 16,
                 }}>{item.name}</Text>
                 <Text style={{
                   color: 'darkgray',
@@ -216,13 +209,14 @@ const SearchValue = () => {
             <Pressable onPress={() => send_req(item.id)} style={{
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: '#6a69fe',
+              backgroundColor: 'white',
               borderRadius: 13,
               padding: 10,
               paddingVertical: 8,
+              display: 'none',
             }}>
               <Text style={{
-                color: 'white',
+                color: 'black',
                 fontSize: 13,
                 //padding: 10,
               }}>Add friend</Text>

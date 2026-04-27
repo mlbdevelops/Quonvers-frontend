@@ -1,46 +1,67 @@
+//import Image from '@/components/reusables/Image';
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Keyboard, Image, Pressable } from 'react-native';
 import { AuthContext } from '@/utils/authContext'
 import { useContext, useState, useEffect } from 'react'
-import { Stack, router } from 'expo-router'
+import { Stack, router, useLocalSearchParams } from 'expo-router'
 import { ArrowLeft } from 'lucide-react-native'
 import { toast } from "@/utils/toaster/toast.ts"
 import { Toaster } from '@/components/reusables/systemToast'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Button from '@/components/reusables/button.tsx'
 import trans from '@/hooks/fetch.ts'
+import { useCustomAlert } from '@/hooks/alert'
+import { storage } from '@/storage/mmkv'
 
 const Login = () => {
+  const sprms = useLocalSearchParams()
   const authContext = useContext(AuthContext)
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(sprms.email || '')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const alert = useCustomAlert()
+  const [wrong_pass_attempts, setAttempts] = useState(0)
+  
   const login = async () => {
     try {
-      
-      if (!email && !password) {
+      if (!email || !password) {
         return;
       }
       setIsLoading(true);
+      Keyboard.dismiss()
       const res = await trans('/api/auth/login', {
         headers: {
           'Content-Type' : 'application/json'
         },
         body: {email, password}
       })
-      
       if (res.code == 803) {
-        toast(res.msg)
+        setAttempts(wrong_pass_attempts + 1)
+        if(wrong_pass_attempts >= 3){
+          alert(null, 'The password entered is wrong, we recommend to reset your account password.', [
+            {text: 'Try again', primary : false},
+            {text: 'Reset password', primary: true}
+          ])
+        }else{
+          alert(null, 'the password entered is wrong.', [
+            {text: 'Try again', primary: true},
+          ])
+        }
+        
         setIsLoading(false)
         return;
       };
       if (res.code == 807) {
-        toast(res.msg)
+        alert(null, <>No user found with email <Text style={{
+          color: '#6a69fe',
+        }}>{email}</Text></>, [
+          { text: 'Sign up', onPress: () => router.replace('/auth/register') },
+          { text: 'Try again', primary: true},
+        ])
         setIsLoading(false)
         return;
       }
       
-        console.log('🔥🔥🔥🔥🔥🔥🔥', res.token);
       if (res.code == 500) {
         toast(res.msg)
         setIsLoading(false)
@@ -48,14 +69,13 @@ const Login = () => {
       }
       
       if (res.code == 200) {
-        //await AsyncStorage.setItem('user', JSON.stringify(res.user))
-        await AsyncStorage.setItem('token', res.token)
+        await storage.set('token', res.token)
+        authContext.logIn(res.user)
       }
-      authContext.logIn(res.user)
     } catch (err) {
-      toast(`Something went wrong, check your internet connection and try again. ${err}`)
-      
+      toast(`Network error`)
       setIsLoading(false)
+      //console.error(err);
     }
   }
   
@@ -71,87 +91,109 @@ const Login = () => {
         width: '100%',
         paddingHorizontal: 20,
         paddingVertical: 20,
-        
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexDirection: 'row',
       }}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => isLoading? toast("Wait while loading...") : router.back()}>
           <ArrowLeft color='white'/>
         </TouchableOpacity>
+        <Pressable onPress={() => router.replace({
+          pathname: '/auth/register',
+          params: {
+            email
+          }
+        })}>
+          <Text style={{
+            color: '#6a69fe',
+            fontWeight: 'bold',
+            fontSize: 16,
+          }}>Sign up</Text>
+        </Pressable>
       </View>
       
-      <Text style={{
-        fontSize: 40,
-        fontWeight: 'bold',
-        marginBottom: 50,
-        marginTop: 20,
-        color: '#6a69fe',
-      }}>Welcome back</Text>
-      
       <View style={{
-        flexDirection: 'column',
+        justifyContent: 'space-between',
+        width: '100%',
+        flex: 1,
         alignItems: 'center',
-        gap: 7.5,
-        width: '89%',
       }}>
-        <Text style={{
-          color: 'white',
-          fontWeight: 'bold',
-          alignSelf: 'flex-start',
-          marginHorizontal: 10,
-        }}>Email</Text>
-        <TextInput 
-          inputType='email'
-          placeholderTextColor='darkgray' 
-          placeholder='Enter your email'
-          keyboardType='email-adress'
-          value={email}
-          onChangeText={(value) => setEmail(value)}
-          style={{
-            width: '100%',
-            height: 45,
-            borderRadius: 50,
-            backgroundColor: '#1d1d1d',
-            paddingHorizontal: 15,
-            color: 'white',
-            marginBottom: 10,
-          }}
-        />
-        <Text style={{
-          color: 'white',
-          fontWeight: 'bold',
-          alignSelf: 'flex-start',
-          marginHorizontal: 10,
-        }}>Password</Text>
-        <TextInput 
-          inputType='password' 
-          placeholder='Enter your password' 
-          placeholderTextColor='darkgray'
-          value={password}
-          secureTextEntry
-          onChangeText={(value) => setPassword(value)}
-          style={{
-            width: '100%',
-            paddingHorizontal: 15,
-            color: 'white',
-            height: 45,
-            borderRadius: 50,
-            backgroundColor: '#1d1d1d',
-            marginBottom: 10,
-          }}
-        />
-        
         <View style={{
-          flexDirection: 'row',
+          flexDirection: 'column',
           alignItems: 'center',
-          width: '100%',
-          justifyContent: 'space-between',
+          gap: 7.5,
+          width: '89%',
         }}>
-          <Button 
-            title='Reset password' 
+          <View style={{
+            flexDirection: 'row',
+            gap: 8,
+            marginBottom: 50,
+            marginTop: 20,
+            alignItems: 'center',
+          }}>
+            <Image style={{
+              height: 39,
+              width: 39,
+            }} source={require('../../assets/images/icon@3.png')}/>
+            <Text style={{
+              color: 'white',
+              fontWeight: 'bold',
+              fontSize: 30,
+              //display: 'none',
+            }}>Quonvers</Text>
+          </View>
+          <Text style={{
+            color: 'white',
+            fontWeight: 'bold',
+            alignSelf: 'flex-start',
+            //marginHorizontal: 10,
+            display: 'none',
+          }}>Email or Username</Text>
+          <TextInput 
+            inputType='email'
+            placeholderTextColor='darkgray' 
+            placeholder='Enter your email or username'
+            keyboardType='email-adress'
+            value={email}
+            cursorColor='#6a69fe'
+            selectionColor="#6a69fe"
+            onChangeText={(value) => setEmail(value)}
             style={{
-              width: '48%',
+              width: '100%',
               height: 45,
-              margin: 0,
-              backgroundColor: '#262626',
+              borderRadius: 15,
+              backgroundColor: '#1d1d1d',
+              paddingHorizontal: 15,
+              color: 'white',
+              marginBottom: 10,
+            }}
+          />
+          <Text style={{
+            color: 'white',
+            fontWeight: 'bold',
+            alignSelf: 'flex-start',
+            //marginHorizontal: 10,
+            display: 'none',
+          }}>Password</Text>
+          
+          <TextInput 
+            inputType='password' 
+            placeholder='Enter your password' 
+            placeholderTextColor='darkgray'
+            value={password}
+            secureTextEntry
+            cursorColor='#6a69fe'
+            selectionColor="#6a69fe"
+            onChangeText={(value) => setPassword(value)}
+            style={{
+              width: '100%',
+              paddingHorizontal: 15,
+              color: 'white',
+              height: 45,
+              borderRadius: 15,
+              backgroundColor: '#1d1d1d',
+              marginBottom: 10,
+              marginTop: 5,
             }}
           />
           <Button 
@@ -159,13 +201,21 @@ const Login = () => {
             loading={isLoading}
             onPress={login}
             style={{
-              width: '48%',
+              width: '100%',
               height: 45,
               margin: 0,
+              opacity: !email || !password? .5 : isLoading? .5 : 1,
             }}
-            loading_msg={'Wait...'}
           />
         </View>
+        <Button 
+          title='Forgot password' 
+          style={{
+            color:'#6a69fe',
+            backgroundColor: 'transparent',
+            marginVertical: 20,
+          }}
+        />
       </View>
     </View>
   );
