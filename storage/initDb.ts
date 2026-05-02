@@ -2,15 +2,18 @@ import { getDb } from './db';
 
 export const initDatabase = async () => {
   const db = await getDb();
-  
-  /*await db.execAsync(`
-    DROP TABLE users
+  try {
+    
+  /*
+  await db.execAsync(`
+    DROP TABLE messages
   `)
   
   return await db.execAsync(`
-    ALTER TABLE chats
-    ADD COLUMN theme JSONB
-  `)*/
+    ALTER TABLE messages
+    ADD COLUMN status TEXT status_at INTEGER
+  `)
+  */
   
   await db.execAsync(`
     PRAGMA journal_mode = WAL;
@@ -84,11 +87,12 @@ export const initDatabase = async () => {
       type TEXT,
       media_url TEXT,
       reply_to TEXT,
-      delivered INTEGER DEFAULT 0,
-      edited INTEGER DEFAULT 0,
-      deleted INTEGER DEFAULT 0,
-      send_status TEXT,
+      has_attachment BOOLEAN DEFAULT false,
+      edited BOOLEAN DEFAULT false,
+      deleted BOOLEAN DEFAULT false,
       server_id TEXT,
+      status TEXT,
+      status_at INTEGER,
       disappears_at INTEGER,
       created_at INTEGER,
       updated_at INTEGER
@@ -126,6 +130,12 @@ export const initDatabase = async () => {
       created_at INTEGER
     );
     
+    CREATE TABLE IF NOT EXISTS pendings(
+      message_id TEXT NOT NULL,
+      toUser TEXT NOT NULL,
+      room_type TEXT NOT NULL
+    );
+    
     -- INDEXES
     CREATE INDEX IF NOT EXISTS idx_messages_chat_created ON messages(chat_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
@@ -135,4 +145,7 @@ export const initDatabase = async () => {
   `);
 
   console.log('Database initialized ✅');
+  } catch (error) {
+    console.error(error);
+  }
 };

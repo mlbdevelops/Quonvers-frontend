@@ -24,7 +24,7 @@ const Profile = () => {
     {
       id: 2,
       type: 'text',
-      content: 'A new day begins 🎉',
+      content: 'Damn tired today',
       avatar: '',
       background: '',
       name: 'Anais Watterson'
@@ -32,7 +32,7 @@ const Profile = () => {
     {
       id: 3,
       type: 'text',
-      content: 'A new day begins 🎉',
+      content: 'Hell',
       avatar: '',
       background: '',
       name: 'Carissa Rochelle'
@@ -40,7 +40,7 @@ const Profile = () => {
     {
       id: 4,
       type: 'text',
-      content: 'A new day begins 🎉',
+      content: 'Hate you',
       avatar: '',
       background: '',
       name: 'Adamentia Wells'
@@ -48,7 +48,7 @@ const Profile = () => {
     {
       id: 5,
       type: 'text',
-      content: 'A new day begins 🎉',
+      content: 'Helllllo',
       avatar: '',
       background: '',
       name: 'Anson George'
@@ -56,7 +56,7 @@ const Profile = () => {
     {
       id: 6,
       type: 'text',
-      content: 'A new day begins 🎉',
+      content: 'Gonna party today, wanna come',
       avatar: '',
       background: '',
       name: 'Habiba Gabrielle'

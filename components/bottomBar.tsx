@@ -59,9 +59,8 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
             : options.title !== undefined
               ? options.title
               : route.name;
-        
+              
         const isFocused = state.index === index;
-        
         const onPress = async () => {
           await handleViber.Strong()
           const event = navigation.emit({

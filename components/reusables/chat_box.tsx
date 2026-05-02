@@ -16,7 +16,8 @@ export default function ChatBox({chat}) {
             chat_id: chat?.id,
             chat_type: chat?.type,
             avatar: chat.chat_avatar,
-            name: chat.recipient_name
+            name: chat.recipient_name,
+            recipient_id: chat.recipient_id
           }
         })}
       }

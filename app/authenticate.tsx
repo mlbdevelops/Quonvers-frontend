@@ -89,8 +89,10 @@ export default function Authenticate() {
   
   return(
     <View style={styles.back}>
+      {/*
       <CharacterAnimation/>
-      {/*<StarsBackground/>*/}
+      <StarsBackground/>
+      */}
       <View style={styles.body}>
         <View style={{
           flexDirection: 'column',
@@ -135,7 +137,7 @@ export default function Authenticate() {
           }}>
             <TouchableOpacity onPress={() => router.push('/auth/register')} style={{...styles.option, alignItems: 'center', justifyContent: 'center', gap: 8}}>
               
-              <HugeiconsIcon color='white' icon={MailIcon}/>
+              {/*<HugeiconsIcon color='white' icon={MailIcon}/>*/}
               
               <Text style={{
                 color: 'white',
@@ -143,8 +145,8 @@ export default function Authenticate() {
               }}>Sign up</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/auth')} style={{...styles.option, alignItems: 'center', justifyContent: 'center', gap: 8}}>
-              <HugeiconsIcon color='white' icon={MailIcon}/>
-                {/*
+              {/*<HugeiconsIcon color='white' icon={MailIcon}/>
+                
               <View style={{...styles.icon}}>
                 <KeyRound color='#6a69fe' size={17}/>
               </View>

@@ -1,14 +1,18 @@
 //import Image from '../components/reusables/Image';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, StyleSheet, Modal, ActivityIndicator, FlatList, Pressable } from 'react-native';
 import * as MediaLibrary from "expo-media-library";  
 import TabSwitcher from '@/components/reusables/tabSwitcher'
 import { FlashList } from '@shopify/flash-list'
 import { Image } from 'expo-image'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import Header from '@/components/header'
+import { ArrowLeft } from 'lucide-react-native'
 
 export const UseMediaPicker = ({onClose}) => {
   const [globalLoading, setGlobalLoading] = useState<boolean>(true)
   const [batchLoading, setBatchLoading] = useState<boolean>(false)
+  const safeInsets = useSafeAreaInsets()
   const [media, setMedia] = useState<any[]>([])
   const [batchSize, setBatchSize] = useState(30)
   const [after, setAfter] = useState<string | null>(null)
@@ -21,10 +25,10 @@ export const UseMediaPicker = ({onClose}) => {
         setBatchLoading(false)
       }
       const result = await MediaLibrary.getAssetsAsync({
-        mediaType: ["photo"],
+        mediaType: ["photo", "video"],
         first: batchSize,
         after,
-        //sortBy: [["creationTime", true]],
+        sortBy: [["creationTime", true]],
       });
       
       setAfter(result.endCursor);
@@ -56,76 +60,72 @@ export const UseMediaPicker = ({onClose}) => {
   useEffect(() => {
     setTimeout(() => {
       setReady(true)
+      console.log(safeInsets);
     }, 100);
   }, [])
   
   
   return (
-    <Modal onRequestClose={onClose} transparent animationType='slide' style={styles.container}>
+    <Modal onRequestClose={onClose} transparent animationType='slide'>
       <View style={{
-        backgroundColor: ready && 'rgba(0, 0, 0, 0.5)',
         flex: 1,
-        alignItems: 'center',
-        justifyContent: 'flex-end',
+        backgroundColor: '#111111',
       }}>
         <View></View>
         <View style={{
-          backgroundColor: '#111111',
-          width: '100%',
-          borderTopLeftRadius: 35,
-          borderTopRightRadius: 35,
-          height: '90%',
-          paddingHorizontal: 13,
+          height: 90,
+          paddingHorizontal: 15,
+          flexDirection: 'row',
+          gap: 10,
+          paddingTop: 30,
+          alignItems: 'center',
         }}>
-          <TabSwitcher itemStyle={{
-            borderRadius: 15,
-          }} style={{
-            backgroundColor: '#121212',
-            borderRadius: 18,
-          }} options={['Photo', 'Video']}/>
-          {globalLoading? <ActivityIndicator color='white' size={'small'}/> : null}
-          <FlashList 
-            data={media}
-            style={{
-              //flexWrap: 'wrap',
-              flexDirection: 'row',
-              gap: 1,
-              flex: 1,
-              //backgroundColor: 'blue',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            numColumns={3}
-            containerStyle={{
-              alignItems: 'center',
-              backgroundColor: 'red',
-              justifyContent: 'center',
-            }}
-            keyExtractor={(item) => item.id}
-            renderItem={({item}) => (
-              <View style={{
-                width: 110,
-                height: 110,
-                marginBottom: 1,
-                borderRadius: 10,
-              }}>
-                <Image style={{
-                  borderRadius: 10,
-                  flex: 1,
-                }} resizeMode='' source={{ uri: item.uri }}/>
-              </View>
-            )}
-          />
+          <Pressable onPress={onClose}>
+            <ArrowLeft color='white'/>
+          </Pressable>
+          <Text style={{
+            color: 'white',
+            fontWeight: ' bold',
+            fontSize: 18,
+          }}>Select an image</Text>
         </View>
+        <View style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          display: globalLoading? undefined : 'none',
+        }}>
+          <ActivityIndicator color='#6a69fe' size='large'/>
+        </View>
+        <FlashList
+          data={media}
+          numColumns={3}
+          style={{
+            flex: 1,
+          }}
+          contentContainerStyle={{
+            backgroundColor: 'black',
+            justifyContent: 'space-around',
+          }}
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item.id}
+          renderItem={({item, index: i}) => (
+            <View style={{
+              height: 115,
+              width: 115,
+              marginHorizontal: 3,
+              marginBottom: 5,
+            }}>
+              {item.mediaType == 'photo'? <Image source={{uri: item.uri}} style={{
+                flex: 1,
+              }}/> : null}
+            </View>
+          )}
+        />
       </View>
     </Modal>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+

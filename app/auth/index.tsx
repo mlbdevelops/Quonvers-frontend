@@ -4,12 +4,13 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Keyboard, Image, P
 import { AuthContext } from '@/utils/authContext'
 import { useContext, useState, useEffect } from 'react'
 import { Stack, router, useLocalSearchParams } from 'expo-router'
-import { ArrowLeft } from 'lucide-react-native'
+import { ArrowLeft, Eye, EyeClosed } from 'lucide-react-native'
 import { toast } from "@/utils/toaster/toast.ts"
 import { Toaster } from '@/components/reusables/systemToast'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Button from '@/components/reusables/button.tsx'
-import trans from '@/hooks/fetch.ts'
+import trans from '@/hooks/fetch'
+import haptics from '@/hooks/haptics'
 import { useCustomAlert } from '@/hooks/alert'
 import { storage } from '@/storage/mmkv'
 
@@ -18,10 +19,11 @@ const Login = () => {
   const authContext = useContext(AuthContext)
   const [email, setEmail] = useState(sprms.email || '')
   const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const alert = useCustomAlert()
-  const [wrong_pass_attempts, setAttempts] = useState(0)
-  
+  const [wrong_pass_attempts, setAttempts] = useState<number>(0)
+  const [showPassword, setshowPassword] = useState<boolean>(false)
+  const { handleViber } = haptics()
   const login = async () => {
     try {
       if (!email || !password) {
@@ -98,7 +100,9 @@ const Login = () => {
         <TouchableOpacity onPress={() => isLoading? toast("Wait while loading...") : router.back()}>
           <ArrowLeft color='white'/>
         </TouchableOpacity>
-        <Pressable onPress={() => router.replace({
+        <Pressable style={{
+          opacity: isLoading? .5 : 1,
+        }} onPress={() => !isLoading && router.replace({
           pathname: '/auth/register',
           params: {
             email
@@ -121,34 +125,42 @@ const Login = () => {
         <View style={{
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 7.5,
+          gap: 5,
           width: '89%',
         }}>
           <View style={{
-            flexDirection: 'row',
-            gap: 8,
-            marginBottom: 50,
-            marginTop: 20,
-            alignItems: 'center',
+            //flexDirection: 'row',
+            marginBottom: 15,
+            marginTop: 5,
+            //borderWidth: 1,
+            borderColor: 'red',
+            width: '100%',
           }}>
             <Image style={{
               height: 39,
               width: 39,
+              display: 'none',
             }} source={require('../../assets/images/icon@3.png')}/>
             <Text style={{
-              color: 'white',
+              fontSize: 27,
               fontWeight: 'bold',
-              fontSize: 30,
-              //display: 'none',
-            }}>Quonvers</Text>
+              marginTop: 10,
+              color: '#6a69fe',
+            }}>Login</Text>
+            
+            <Text style={{
+              fontSize: 13,
+              marginTop: 10,
+              color: 'white',
+            }}>Login to your existing quonvers account using your email and password.</Text>
           </View>
           <Text style={{
             color: 'white',
             fontWeight: 'bold',
             alignSelf: 'flex-start',
             //marginHorizontal: 10,
-            display: 'none',
-          }}>Email or Username</Text>
+            //display: 'none',
+          }}>Email</Text>
           <TextInput 
             inputType='email'
             placeholderTextColor='darkgray' 
@@ -173,29 +185,52 @@ const Login = () => {
             fontWeight: 'bold',
             alignSelf: 'flex-start',
             //marginHorizontal: 10,
-            display: 'none',
+            //display: 'none',
           }}>Password</Text>
           
-          <TextInput 
-            inputType='password' 
-            placeholder='Enter your password' 
-            placeholderTextColor='darkgray'
-            value={password}
-            secureTextEntry
-            cursorColor='#6a69fe'
-            selectionColor="#6a69fe"
-            onChangeText={(value) => setPassword(value)}
-            style={{
-              width: '100%',
-              paddingHorizontal: 15,
-              color: 'white',
+          <View style={{
+            width: '100%',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 2,
+            //backgroundColor: '#1d1d1d',
+            marginBottom: 10,
+          }}>
+            <TextInput 
+              inputType='password' 
+              placeholder='Enter your password' 
+              placeholderTextColor='darkgray'
+              value={password}
+              secureTextEntry={!showPassword}
+              cursorColor='#6a69fe'
+              selectionColor="#6a69fe"
+              onChangeText={(value) => setPassword(value)}
+              style={{
+                flex: 1,
+                paddingHorizontal: 15,
+                color: 'white',
+                height: 45,
+                borderTopLeftRadius: 15,
+                borderBottomLeftRadius: 15,
+                backgroundColor: '#1d1d1d',
+                //marginTop: 5,
+              }}
+            />
+            <TouchableOpacity onPress={() => {
+              setshowPassword((prev) => !prev)
+              handleViber.Light()
+            }} style={{
               height: 45,
-              borderRadius: 15,
               backgroundColor: '#1d1d1d',
-              marginBottom: 10,
-              marginTop: 5,
-            }}
-          />
+              width: 45,
+              borderTopRightRadius: 15,
+              borderBottomRightRadius: 15,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              {showPassword? <EyeClosed color='white' size={20}/> : <Eye color='white' size={20}/>}
+            </TouchableOpacity>
+          </View>
           <Button 
             title='Login' 
             loading={isLoading}

@@ -2,6 +2,8 @@ import { createContext, useState, useEffect, PropsWithChildren } from 'react'
 import { useRouter } from 'expo-router'
 import { storage } from '@/storage/mmkv'
 import { getMessages } from '../utils/MessageServices/GetMesages.ts'
+import { localMsgStore, deleteMessage } from '@/utils/MessageServices/index'
+import { socket } from '@/hooks/sockets/socket_provider'
 
 type ChatState = {
   messages: any[],
@@ -40,6 +42,14 @@ export const ChatProvider = ({ children }: PropsWithChildren) => {
       setIsReady(true)
     })()
   }, [chat_id])
+  
+  useEffect(() => {
+    socket.on('message:receive', async (data) => {
+      const saveMsg = await localMsgStore(data)
+    })
+    return () => socket.disconnect()
+  }, [])
+  
   
   const load_messages = async (chat_id) => {
     console.log(chat_id)

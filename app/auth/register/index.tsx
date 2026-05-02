@@ -63,7 +63,7 @@ const register = () => {
       setisLoading(false)
     } catch (error) {
       setisLoading(false)
-      toast('Internet connection timeout, please try again.')
+      toast('Network error')
     }
   }
   
@@ -80,10 +80,12 @@ const register = () => {
         justifyContent: 'space-between',
         flexDirection: 'row',
       }}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => isLoading? toast("Wait while loading...") : router.back()}>
           <ArrowLeft color='white'/>
         </TouchableOpacity>
-        <Pressable onPress={() => router.replace({ pathname:'/auth', params: { email }})}>
+        <Pressable style={{
+          opacity: isLoading? .5 : 1,
+        }} onPress={() => !isLoading && router.replace({ pathname:'/auth', params: { email }})}>
           <Text style={{
             color: '#6a69fe',
             fontWeight: 'bold',
@@ -102,7 +104,7 @@ const register = () => {
         fontSize: 13,
         marginTop: 10,
         color: 'white',
-      }}>We'll send a verification code to your email in order to verify your identity.</Text>
+      }}>We'll send a 6 digits code to your email in order to verify your identity.</Text>
       
       <View style={{
         flexDirection: 'column',
@@ -125,7 +127,6 @@ const register = () => {
           keyboardType='email-adress'
           cursorColor='#6a69fe'
           selectionColor="#6a69fe"
-          lowerCase
           onChangeText={(value) => setEmail(value.toLowerCase().trim())}
           style={{
             width: '100%',

@@ -22,6 +22,7 @@
     "@react-navigation/stack": "^7.6.16",
     "@shopify/flash-list": "2.0.2",
     "dayjs": "^1.11.19",
+    "eventemitter3": "^5.0.4",
     "expo": "~54.0.32",
     "expo-av": "~16.0.8",
     "expo-blur": "^15.0.8",

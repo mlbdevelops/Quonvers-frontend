@@ -12,7 +12,12 @@ dayjs.extend(relativeTime)
 
 const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, isLast}) => {
   const [showTimestamp, setShowTimestamp] = useState(false)
+  const [msgStatus, setMsgStatus] = useState(item.status)
   const [reaction, setReaction] = useState([])
+  
+  useEffect(() => {
+    setMsgStatus(item.status)
+  }, [item.status])
   
   function hasAnyAlphabet() {
     return /\p{L}/u.test(item.content)
@@ -55,7 +60,7 @@ const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, i
         fontWeight: 'normal',
         fontSize: 13,
         marginTop: 1,
-      }}>Sending</Text>
+      }}>{msgStatus}</Text>
     </Pressable>
   );
 };

@@ -5,6 +5,7 @@ import { messageEmitter } from './index.ts';
 const now = () => Math.floor(Date.now() / 1000);
 
 interface Message {
+  id?: string
   chat_id: string,
   sender_id: string,
   content: any,
@@ -12,10 +13,14 @@ interface Message {
   media_url?: string | null,
   attachments?: any | null,
   reply_to?: string | null,
-  disappears_at?: number | null
+  disappears_at?: number | null,
+  to: string,
+  room_type: string,
+  created_at: number | null
 }
 
 export const localMsgStore = async ({
+  id,
   chat_id,
   sender_id,
   content,
@@ -23,34 +28,66 @@ export const localMsgStore = async ({
   media_url,
   attachments = [],
   reply_to,
-  disappears_at
-} : Message) => {
+  disappears_at,
+  to,
+  room_type = 'private',
+  created_at
+} : Message, local = true) => {
   try {
     const db = await getDb();
     const message_id = await uuidv4();
     const timestamp = now();
-    
     const message = {
-      id: message_id,
+      id: id || message_id,
       chat_id,
       sender_id,
       content,
       type,
       media_url: media_url || null,
       reply_to: reply_to || null,
-      send_status: 'pending',
-      created_at: timestamp,
-      updated_at: timestamp,
+      status: 'Sending',
+      created_at: created_at || timestamp,
+      updated_at: created_at || timestamp,
       disappears_at: disappears_at || null
     };
+    //console.log(message);
+    const checkIfAlreadyExist = await db?.getAllAsync('SELECT * FROM messages WHERE id = ?', [message.id])
+    console.log(checkIfAlreadyExist);
+    if (checkIfAlreadyExist.length) return 
     
     // Insert message
     await db?.runAsync(
       `INSERT INTO messages
-        (id, chat_id, sender_id, content, type, media_url, reply_to, send_status, created_at, updated_at, disappears_at)
+        (
+          id,
+          chat_id,
+          sender_id,
+          content,
+          type,
+          media_url,
+          reply_to,
+          status,
+          created_at,
+          updated_at,
+          disappears_at
+        )
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       Object.values(message)
     );
+    
+    //Insert pendings
+    if (local) {
+      await db?.runAsync(
+        `INSERT INTO pendings
+          (
+            message_id,
+            toUser,
+            room_type
+          )
+         VALUES (?, ?, ?)`,
+        [message.id, to, room_type]
+      );
+    }
     
     // Insert attachments
     for (const att of attachments) {

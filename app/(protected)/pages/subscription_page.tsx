@@ -10,7 +10,7 @@ const SubscriptionPage = () => {
   const [isLoading, setisLoading] = React.useState(false)
   const [showFullSL, setShowFullSL] = React.useState(false)
   
-  const subscribe = async () => {
+  const Upgrade  = async () => {
     setisLoading(true)
     setShowFullSL(true)
     setTimeout(() => {
@@ -42,6 +42,16 @@ const SubscriptionPage = () => {
     },
     {
       feature: 'Create a channel',
+      free: false,
+      pro: true
+    },
+    {
+      feature: 'Limitless chat functionalities',
+      free: false,
+      pro: true
+    },
+    {
+      feature: 'Videos upload',
       free: false,
       pro: true
     },
@@ -88,7 +98,7 @@ const SubscriptionPage = () => {
       }}>Pro</Text></Text>
       <Text style={{
         color: 'white',
-      }}>Subscribe to the pro plan to get the best experience and a dedicated VIP badge</Text>
+      }}>Enhance your experience with quonvers pro and stand out with a VIP badge</Text>
       </View>
       <View>
         <Text style={{
@@ -197,8 +207,8 @@ const SubscriptionPage = () => {
         color: '#797979',
         marginTop: 10,
       }}>Don't forget that you can cancel anytime</Text>
-      <Button loading={isLoading} onPress={subscribe} style={{
-      }} title='Subscribe for $3.99/month'/>
+      <Button loading={isLoading} onPress={Upgrade } style={{
+      }} title='Get it for $3.99/month'/>
     </View>
   );
 };

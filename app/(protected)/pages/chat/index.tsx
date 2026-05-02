@@ -24,7 +24,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming
 } from 'react-native-reanimated'
-import { localMsgStore, deleteMessage } from '@/utils/MessageServices/index'
+import { localMsgStore, deleteMessage, sendMessage } from '@/utils/MessageServices/index'
 import { storage } from '@/storage/mmkv'
 import shouldShowAvatar from '@/utils/logics/is_same_sender'
 import { socket } from '@/hooks/sockets/socket_provider'
@@ -32,6 +32,7 @@ import { getMessages } from '@/utils/MessageServices/GetMesages'
 import { ChatContext } from '@/contexts/chatContext'
 import { useCustomAlert } from '@/hooks/alert'
 import { UseMediaPicker } from '@/hooks/useMediaPicker'
+import { FlashList } from '@shopify/flash-list'
 
 const Chat = () => {
   const context = useContext(ChatContext)
@@ -45,7 +46,7 @@ const Chat = () => {
   const [input, setinput] = useState<any>('')
   const [logged_user, setLoggedUser] = useState<string | null>(JSON.parse(storage.getString('user')).user.id)
   const [audio_call_modal, setAudio_call_modal] = useState<boolean | null>(false)
-  const { chat_id, chat_type, avatar, name } = useLocalSearchParams()
+  const { chat_id, chat_type, avatar, name, recipient_id } = useLocalSearchParams()
   const [messages, setMessages] = useState<any[]>(context.messages || [])
   const flatListRef = useRef(null);
   const [messageOptions, setMessageOptions] = useState<boolean>(false)
@@ -85,7 +86,7 @@ const Chat = () => {
     (async () => {
       //return await context.load_messages(chat_id)
       if(chat_id){
-        const messages = await getMessages({chat_id})
+        const messages = await getMessages({chat_id: '031c0fa3-cd3d-4df9-acac-11bc179fed6d'})
         if(messages.length){
           setMessages(messages)
         }
@@ -93,6 +94,15 @@ const Chat = () => {
       setIsReady(true)
     })()
   }, [])
+  
+  useEffect(() => {
+    socket.on('message:receive', (msg) => setMessages((prev) => [msg, ...prev]))
+    
+    socket.on('message:status', (data) => {
+      console.log(data);
+    })
+  }, [])
+  
   
   const clearMsgs = () => setMessages([])
   
@@ -103,20 +113,27 @@ const Chat = () => {
     return () => buttonHandler.remove()
   }, [])
   
-  const sendMessage = async (params = { input: null }) => {
-    const saveMsg = await localMsgStore({
-      chat_id,
-      sender_id: logged_user,
-      content : params?.input?.trim() || input?.trim(),
-      type: 'text',
-      media_url : null,
-      attachments: [],
-      reply_to : null,
-      disappears_at : null
-    })
-    setMessages((prev) => [saveMsg, ...prev])
-    if(socket.id && saveMsg.id){
-      socket.emit('message:send', saveMsg)
+  const send = async (params = { input: null }) => {
+    try {
+      const saveMsg = await localMsgStore({
+        chat_id: '031c0fa3-cd3d-4df9-acac-11bc179fed6d',
+        sender_id: logged_user,
+        content : params?.input?.trim() || input?.trim(),
+        type: 'text',
+        media_url : null,
+        attachments: [],
+        reply_to : null,
+        disappears_at : null,
+        to: recipient_id
+      })
+      setMessages((prev) => [saveMsg, ...prev])
+      if(socket?.id && saveMsg?.id){
+        sendMessage({...saveMsg, toUser: recipient_id}, (check) => {
+          console.log(check)
+        })
+      }
+    } catch (error) {
+      console.error(error);
     }
   }
   
@@ -554,7 +571,9 @@ const Chat = () => {
               paddingRight: input? 2.5 : undefined,
             }}
             onPress={ async () => {
-              await handleViber.Strong()
+              input && await handleViber.Light()
+              input && setinput('')
+              input && send()
             }}>
             {input? 
               <HugeiconsIcon 
@@ -571,7 +590,7 @@ const Chat = () => {
           
         </View>
         
-        <Animated.View style={[{
+        {/*<Animated.View style={[{
           height: 40,
           width: 40,
           alignItems: 'center',
@@ -602,7 +621,7 @@ const Chat = () => {
               size={25}
             />
           </Pressable>
-        </Animated.View>
+        </Animated.View>*/}
       </View>
       
       <Animated.View 

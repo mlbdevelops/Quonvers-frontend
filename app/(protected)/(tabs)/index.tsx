@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator,
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { getDb } from '@/storage/db';
 import { storage } from '@/storage/mmkv';
-import { BubbleChatIcon, SearchIcon, FavouriteIcon, Notification01Icon, Home03Icon, MenuIcon, UserCircleIcon, MailIcon, AddIcon, WifiOffIcon } from '@hugeicons/core-free-icons';
+import { BubbleChatIcon, SearchIcon, FavouriteIcon, Notification01Icon, Home03Icon, MenuIcon, UserCircleIcon, MailIcon, AddIcon, WifiOffIcon, Chat01Icon } from '@hugeicons/core-free-icons';
 import haptics from '../../../hooks/haptics.js'
 import Header from '@/components/header'
 import ChatBox from '@/components/reusables/chat_box'
@@ -17,6 +17,9 @@ import { useCustomAlert } from '@/hooks/alert'
 import { router } from 'expo-router'
 import { toast } from "@/utils/toaster/toast.ts"
 import { Toaster } from '@/components/reusables/systemToast'
+import { socket } from '@/hooks/sockets/socket_provider';
+import { localMsgStore } from '@/utils/MessageServices/index'
+import { MessageStatus } from '@/utils/MessageServices'
 
 export default function messagesScreen(){
   const { handleViber } = haptics()
@@ -31,9 +34,33 @@ export default function messagesScreen(){
   
   const onRefresh = useCallback( async () => {
     setRefreshing(true)
-    await getChatsFromDb()
+    await getChats()
     setRefreshing(false)
   })
+  
+  useEffect(() => {
+    socket.on('message:receive', async (msg) => {
+      //console.log(msg.chat_id);
+      await localMsgStore({
+        id: msg.id,
+        chat_id: msg.chat_id,
+        sender_id: msg.sender_id,
+        content : msg.content,
+        type: msg.type,
+        media_url : msg.media_url,
+        attachments: msg.attachments || [],
+        reply_to : msg.reply_to,
+        disappears_at : msg.disappears_at,
+        created_at: msg.created_at
+      }, false)
+      
+      socket.emit('message:delivered', {msg_id: msg.id, toUser: msg.sender_id, at: Date.now(), status: 'Delivered'})
+    })
+    socket.on('message:status', async (data) => {
+      await MessageStatus(data.msg_id, data.status, data.at)
+    })
+    return () => socket.disconnect()
+  }, [])
   
   const getChatsFromDb = async () => {
     const db = await getDb();
@@ -43,7 +70,7 @@ export default function messagesScreen(){
         c.id,  
         u.name AS recipient_name,  
         u.avatar AS chat_avatar,  
-        r.user_id AS recipient_user_id,  
+        r.user_id AS recipient_id,  
         r.nickname AS recipient_nickname,  
         mc.muted AS isMuted,  
         c.last_message_id,  
@@ -65,16 +92,15 @@ export default function messagesScreen(){
       GROUP BY c.id  
       ORDER BY c.pinned_at DESC, c.last_message_at DESC
     `, [user.id, user.id]);
-    console.log(chats);
+    //console.log(chats);
     setChats([...new Set([...chats])])
     setLoading(false)
   };
   
   const getChats = async () => {
-    return
     try {
       setLoading(true)
-      await getChatsFromDb()
+      //await getChatsFromDb()
       const res = await trans('/api/chat/get_chat_list', {
         useToken: true,
         method: 'GET',
@@ -83,7 +109,6 @@ export default function messagesScreen(){
       if (res.code == 200 && res.data) {
         setChats((prev) => {
           const newChats = [...prev, ...res.data]
-          //console.log('🥺🥺🥺', newChats);
           return newChats
         })
       }
@@ -110,7 +135,7 @@ export default function messagesScreen(){
   
   useEffect(() => {
     ( async () => {
-      await getChatsFromDb()
+      await getChats()
     })()
   }, [])
   
@@ -144,10 +169,10 @@ export default function messagesScreen(){
               await handleViber.Medium()
             }}
             style={{
-              padding: 2.5,
+              padding: 2,
               backgroundColor: '',
               borderRadius: 50,
-              borderWidth: 1,
+              borderWidth: 1.5,
               borderColor: 'white',
             }}>
             <Ellipsis size={20} color='white'/>
@@ -337,7 +362,7 @@ export default function messagesScreen(){
             justifyContent: 'center',
             gap: 6
           }}>
-            <HugeiconsIcon icon={MailIcon} size={100} color='white'/>
+            <HugeiconsIcon icon={Chat01Icon} size={100} color='white'/>
             <Text style={{
               fontSize: 25,
               color: 'white',

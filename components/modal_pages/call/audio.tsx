@@ -61,8 +61,8 @@ const Audio = ({visible, onClose, chat}) => {
             //borderColor: 'white',
           }}>
             <TouchableOpacity onPress={onClose} style={{
-              //backgroundColor: '#313237',
-              borderRadius: 23,
+              //backgroundColor: '#1d1d1d',
+              borderRadius: 21,
               //height: 50,
               ///width: 50,
               alignItems: 'center',
@@ -76,7 +76,7 @@ const Audio = ({visible, onClose, chat}) => {
             <TouchableOpacity onPress={() => {
                 handleViber.Medium()
               }} style={{
-                //backgroundColor: '#313237',
+                //backgroundColor: '#1d1d1d',
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -84,7 +84,7 @@ const Audio = ({visible, onClose, chat}) => {
                 borderRadius: 50,
                 height: 25,
                 width: 25,
-                borderWidth: 1,
+                borderWidth: 1.5,
                 borderColor: 'white',
               }}
             >
@@ -122,8 +122,9 @@ const Audio = ({visible, onClose, chat}) => {
         <View style={{
           height: 71,
           width: '100%',
-          backgroundColor: '#1D1E22',
-          borderRadius: 30,
+          maxWidth: 400,
+          backgroundColor: '#171717',
+          borderRadius: 24.5,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-evenly',
@@ -131,8 +132,8 @@ const Audio = ({visible, onClose, chat}) => {
           //borderColor: '#111111',
         }}>
           <TouchableOpacity style={{
-            backgroundColor: '#313237',
-            borderRadius: 23,
+            backgroundColor: '#262626',
+            borderRadius: 21,
             height: 50,
             width: 50,
             alignItems: 'center',
@@ -144,8 +145,8 @@ const Audio = ({visible, onClose, chat}) => {
             />
           </TouchableOpacity>
           <TouchableOpacity style={{
-            backgroundColor: '#313237',
-            borderRadius: 23,
+            backgroundColor: '#262626',
+            borderRadius: 21,
             height: 50,
             width: 50,
             alignItems: 'center',
@@ -160,8 +161,8 @@ const Audio = ({visible, onClose, chat}) => {
             await handleViber.Light()
             setisStrongSound((prev) => !prev)
           }} style={{
-            backgroundColor: isStrongSound? '#6a69fe' : '#313237',
-            borderRadius: 23,
+            backgroundColor: isStrongSound? '#6a69fe' : '#262626',
+            borderRadius: 21,
             height: 50,
             width: 50,
             alignItems: 'center',
@@ -176,8 +177,8 @@ const Audio = ({visible, onClose, chat}) => {
             await handleViber.Light()
             setisMicOff((prev) => !prev)
           }} style={{
-            backgroundColor: isMicOff? '#6a69fe' : '#313237',
-            borderRadius: 23,
+            backgroundColor: isMicOff? '#6a69fe' : '#262626',
+            borderRadius: 21,
             height: 50,
             width: 50,
             alignItems: 'center',
@@ -194,16 +195,16 @@ const Audio = ({visible, onClose, chat}) => {
             onClose()
             await handleViber.Light()
           }} style={{
-            backgroundColor: 'tomato',
-            borderRadius: 23,
+            backgroundColor: '#ff63471d',
+            borderRadius: 21,
             height: 50,
             width: 50,
             alignItems: 'center',
             justifyContent: 'center',
           }}>
             <HugeiconsIcon 
-              color='white'
-              //fill='tomato'
+              color='tomato'
+              fill='tomato'
               icon={CallEnd04Icon}
             />
           </TouchableOpacity>
@@ -219,6 +220,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 15,
     paddingVertical: 20,
+    paddingBottom: 15,
     alignItems: 'center',
     backgroundColor: '#000000',
     flexDirection: 'column',
