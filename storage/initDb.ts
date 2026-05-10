@@ -3,7 +3,6 @@ import { getDb } from './db';
 export const initDatabase = async () => {
   const db = await getDb();
   try {
-    
   /*
   await db.execAsync(`
     DROP TABLE messages
@@ -19,26 +18,13 @@ export const initDatabase = async () => {
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
     
-    -- THEME
-    CREATE TABLE IF NOT EXISTS chat_theme (
-      chat_id TEXT PRIMARY KEY NOT NULL,
-      background TEXT NOT NULL,
-      msg_res_color TEXT,
-      msg_log_color TEXT
-    );
-    
     -- USERS
     CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
+      user_id TEXT PRIMARY KEY,
       username TEXT,
       name TEXT,
-      user_id TEXT,
       avatar TEXT,
-      phone TEXT,
-      bio TEXT,
-      is_verified BOOLEAN DEFAULT false,
-      created_at INTEGER,
-      updated_at INTEGER
+      is_pro BOOLEAN DEFAULT false
     );
     
     -- CHATS
@@ -52,14 +38,15 @@ export const initDatabase = async () => {
       last_message_at INTEGER,
       last_message_sender_id TEXT,
       created_at INTEGER,
+      status TEXT,
+      theme BLOB,
       read_receipts BOOLEAN DEFAULT true,
-      quick_reaction TEXT,
-      allow_forwarding BOOLEAN DEFAULT false,
-      allow_copying BOOLEAN DEFAULT false,
-      disappearing_enabled BOOLEAN DEFAULT false,
+      muted BOOLEAN DEFAULT false,
       disappearing_duration INTEGER,
       pinned_at INTEGER,
-      archived BOOLEAN DEFAULT false
+      favorite BOOLEAN DEFAULT false,
+      archived BOOLEAN DEFAULT false,
+      locked BOOLEAN DEFAULT false
     );
     
     -- CHAT MEMBERS
@@ -68,8 +55,9 @@ export const initDatabase = async () => {
       chat_id TEXT,
       user_id TEXT,
       nickname TEXT,
-      role TEXT,
+      role TEXT DEFAULT member,
       muted BOOLEAN DEFAULT false,
+      allow_forwarding BOOLEAN DEFAULT false,
       last_read_message_id TEXT,
       last_read_at INTEGER,
       unread_count INTEGER DEFAULT 0,
@@ -85,9 +73,8 @@ export const initDatabase = async () => {
       sender_id TEXT,
       content TEXT,
       type TEXT,
-      media_url TEXT,
+      content_url TEXT,
       reply_to TEXT,
-      has_attachment BOOLEAN DEFAULT false,
       edited BOOLEAN DEFAULT false,
       deleted BOOLEAN DEFAULT false,
       server_id TEXT,
@@ -108,15 +95,6 @@ export const initDatabase = async () => {
       UNIQUE(message_id, user_id)
     );
     
-    -- MESSAGE RECEIPTS
-    CREATE TABLE IF NOT EXISTS message_receipts (
-      message_id TEXT,
-      user_id TEXT,
-      delivered_at INTEGER,
-      read_at INTEGER,
-      PRIMARY KEY(message_id, user_id)
-    );
-    
     -- ATTACHMENTS
     CREATE TABLE IF NOT EXISTS attachments (
       id TEXT PRIMARY KEY,
@@ -134,6 +112,29 @@ export const initDatabase = async () => {
       message_id TEXT NOT NULL,
       toUser TEXT NOT NULL,
       room_type TEXT NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS requests(
+      id TEXT PRIMARY KEY,
+      sender_id TEXT NOT NULL,
+      toUser TEXT NOT NULL,
+      sent_at TEXT NOT NULL,
+      message TEXT NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS sent_requests(
+      id TEXT PRIMARY KEY,
+      sender_id TEXT NOT NULL,
+      toUser TEXT NOT NULL,
+      last_sent TEXT NOT NULL,
+      message TEXT NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS accepted_requests(
+      id TEXT PRIMARY KEY,
+      sender_id TEXT NOT NULL,
+      toUser TEXT NOT NULL,
+      accepted_at TEXT NOT NULL
     );
     
     -- INDEXES

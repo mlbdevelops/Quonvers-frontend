@@ -147,7 +147,8 @@ const SheetComp = ({onClose}) => {
             width: '100%',
             borderTopLeftRadius: 25,
             borderTopRightRadius: 25,
-            backgroundColor: '#171717',
+            //height: '95%',
+            backgroundColor: '#111111',
             minHeight: 50,
             paddingVertical: 15,
           },
@@ -197,7 +198,7 @@ const SheetComp = ({onClose}) => {
                     <Text style={{
                       color: 'darkgrey',
                     }}>{sub_label}</Text>
-                    <Switch enabled={i == 4}/>
+                    <Switch enabled={i == 5 || i == 2}/>
                   </View>
                 </View>
               </TouchableOpacity>

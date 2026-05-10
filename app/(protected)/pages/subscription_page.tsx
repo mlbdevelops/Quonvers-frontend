@@ -46,12 +46,12 @@ const SubscriptionPage = () => {
       pro: true
     },
     {
-      feature: 'Limitless chat functionalities',
+      feature: 'HD video calls',
       free: false,
       pro: true
     },
     {
-      feature: 'Videos upload',
+      feature: 'Scheduled moments',
       free: false,
       pro: true
     },
@@ -66,17 +66,12 @@ const SubscriptionPage = () => {
       pro: true
     },
     {
-      feature: 'Read receipt',
+      feature: 'Videos upload',
       free: false,
       pro: true
     },
     {
-      feature: 'Chat customization',
-      free: false,
-      pro: true
-    },
-    {
-      feature: 'HD video calls',
+      feature: 'Limitless chat functionalities',
       free: false,
       pro: true
     },
@@ -181,7 +176,7 @@ const SubscriptionPage = () => {
                   color: 'white',
                 }}>
                     {/*<X color='tomato'/>*/}
-                    {typeof free == 'boolean'? '_' : free}
+                    {typeof free == 'boolean'? <X color='white' size={15}/> : free}
                   </Text>
                 </View>
                 <View style={{

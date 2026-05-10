@@ -2,11 +2,9 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime';
 dayjs.extend(relativeTime)
 
-const dateFormat = (time, type) => {
+const DateFormat = (time, type) => {
   const date = dayjs(time).fromNow()
-  let timeFormat = date;
-  
-  return timeFormat
+  return date.replace('minutes', 'mins').replace('a few seconds ago', 'now').replace('a minute', '1 min')
 }
 
-export default dateFormat || 'wrong date'
+export default DateFormat || 'Date problem'

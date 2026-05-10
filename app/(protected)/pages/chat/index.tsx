@@ -19,11 +19,7 @@ import MsgFocus from '@/components/modal_pages/msg_focus'
 import MessagesOptions from '@/components/modal_pages/chat_send_messages_options'
 import Audio from '@/components/modal_pages/call/audio'
 import { useAnimatedKeyboard } from "react-native-keyboard-controller";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming
-} from 'react-native-reanimated'
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated'
 import { localMsgStore, deleteMessage, sendMessage } from '@/utils/MessageServices/index'
 import { storage } from '@/storage/mmkv'
 import shouldShowAvatar from '@/utils/logics/is_same_sender'
@@ -33,6 +29,8 @@ import { ChatContext } from '@/contexts/chatContext'
 import { useCustomAlert } from '@/hooks/alert'
 import { UseMediaPicker } from '@/hooks/useMediaPicker'
 import { FlashList } from '@shopify/flash-list'
+import AppEvent, { Events } from '@/utils/eventEmitter';
+import { MessageStatus } from '@/utils/MessageServices'
 
 const Chat = () => {
   const context = useContext(ChatContext)
@@ -46,7 +44,7 @@ const Chat = () => {
   const [input, setinput] = useState<any>('')
   const [logged_user, setLoggedUser] = useState<string | null>(JSON.parse(storage.getString('user')).user.id)
   const [audio_call_modal, setAudio_call_modal] = useState<boolean | null>(false)
-  const { chat_id, chat_type, avatar, name, recipient_id } = useLocalSearchParams()
+  const { chat_id, chat_type, avatar, name, recipient_id, sender_data } = useLocalSearchParams()
   const [messages, setMessages] = useState<any[]>(context.messages || [])
   const flatListRef = useRef(null);
   const [messageOptions, setMessageOptions] = useState<boolean>(false)
@@ -59,7 +57,7 @@ const Chat = () => {
     'https://wallpapers.com/images/hd/minimalist-planetary-design-yo4xhchp4govyrdq.jpg'
   ]
   
-  const senderSizeValue = useSharedValue(0)
+  /*const senderSizeValue = useSharedValue(0)
   const scaleButtonValue = useSharedValue(0)
   
   const senderButtonStyle = useAnimatedStyle(() => ({
@@ -75,7 +73,7 @@ const Chat = () => {
     }
     senderSizeValue.value = withTiming(0, { duration: 250 })
     scaleButtonValue.value = withTiming(0, { duration: 250 })
-  }, [input])
+  }, [input])*/
   
   function isTheLastMessageMine(messages: any, currentMassage: any) {
     const verif = messages[0]
@@ -86,9 +84,10 @@ const Chat = () => {
     (async () => {
       //return await context.load_messages(chat_id)
       if(chat_id){
-        const messages = await getMessages({chat_id: '031c0fa3-cd3d-4df9-acac-11bc179fed6d'})
+        const messages = await getMessages({chat_id})
         if(messages.length){
           setMessages(messages)
+          console.log('LOGGED FROM CHAT PAGE =>> ', messages[0]);
         }
       }
       setIsReady(true)
@@ -96,11 +95,17 @@ const Chat = () => {
   }, [])
   
   useEffect(() => {
-    socket.on('message:receive', (msg) => setMessages((prev) => [msg, ...prev]))
-    
-    socket.on('message:status', (data) => {
-      console.log(data);
+    socket.on('message:receive', (msg) => {
+      if(msg.chat_id !== chat_id) return
+      setMessages((prev) => [msg, ...prev])
+      socket.emit('message:seen', { msg_id: msg.id, at: Date.now(), toUser: recipient_id, status: 'Seen' })
     })
+    
+    /*socket.on('message:status', async (data) => {
+      await MessageStatus(data.msg_id, data.status, data.at)
+    })*/
+    
+    //return () => socket.off('message:receive')
   }, [])
   
   
@@ -116,21 +121,20 @@ const Chat = () => {
   const send = async (params = { input: null }) => {
     try {
       const saveMsg = await localMsgStore({
-        chat_id: '031c0fa3-cd3d-4df9-acac-11bc179fed6d',
+        chat_id,
         sender_id: logged_user,
         content : params?.input?.trim() || input?.trim(),
         type: 'text',
-        media_url : null,
+        content_url : null,
         attachments: [],
         reply_to : null,
         disappears_at : null,
         to: recipient_id
       })
+      const sender = sender_data && JSON.parse(sender_data)
       setMessages((prev) => [saveMsg, ...prev])
       if(socket?.id && saveMsg?.id){
-        sendMessage({...saveMsg, toUser: recipient_id}, (check) => {
-          console.log(check)
-        })
+        await sendMessage({...saveMsg, toUser: recipient_id}, sender)
       }
     } catch (error) {
       console.error(error);
@@ -254,7 +258,10 @@ const Chat = () => {
           flexDirection: 'row',
           gap: 30
         }}>
-          <TouchableOpacity key={1} onPress={() => {
+          <TouchableOpacity style={{
+            opacity: messages.length < 2 && .4,
+          }} key={1} onPress={() => {
+            if(messages.length < 2) return
             handleViber.Strong()
             alert(null, 'Are you sure you want to make the call?', [
               {
@@ -272,7 +279,10 @@ const Chat = () => {
           }}>
             <HugeiconsIcon color='white' icon={CallAdd02Icon}/>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => {
+          <TouchableOpacity style={{
+            opacity: messages.length < 2 && .4,
+          }} onPress={() => {
+            if(messages.length < 2) return
             router.push({
               pathname: '/pages/chat/settings',
               params: {
@@ -315,6 +325,7 @@ const Chat = () => {
             item={item}
             isMyLastMessage={isTheLastMessageMine(messages, item)}
             shouldShow={shouldShowAvatar(item, messages[index - 1])}
+            room_icon={avatar}
             isLast={item.id === messages[0].id}
             onLongPress={() => {
               setSelected_msg_for_focus_mode(item)
@@ -473,10 +484,11 @@ const Chat = () => {
                 backgroundColor: '#1d1d1d' || '#343484',
                 alignItems: 'center',
                 justifyContent: 'center',
+                opacity: messages.length < 2 && .4,
               }}
               onPress={ async () => {
-                await handleViber.Strong()
-                setMessageOptions(true)
+                messages.length >= 2 && await handleViber.Strong()
+                messages.length >= 2 && setMessageOptions(true)
               }}>
               <HugeiconsIcon 
                 icon={AddIcon} 
@@ -493,10 +505,11 @@ const Chat = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: '#1d1d1d',
-                display: input && 'none'
+                display: input && 'none',
+                opacity: messages.length < 2 && .4,
               }}
               onPress={ async () => {
-                await handleViber.Strong()
+                messages.length >= 2 && await handleViber.Strong()
               }}>
               <HugeiconsIcon 
                 icon={CameraIcon} 

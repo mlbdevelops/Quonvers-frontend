@@ -1,8 +1,8 @@
 import { getDb } from '../../storage/db.ts';
 import { v4 as uuidv4 } from 'uuid';
-import { messageEmitter } from './index.ts';
+import AppEvent, { Events } from '@/utils/eventEmitter';
 
-const now = () => Math.floor(Date.now() / 1000);
+const now = () => Date.now() / 1000;
 
 interface Message {
   id?: string
@@ -10,14 +10,14 @@ interface Message {
   sender_id: string,
   content: any,
   type: string,
-  media_url?: string | null,
+  content_url?: string | null,
   attachments?: any | null,
   reply_to?: string | null,
   disappears_at?: number | null,
   to: string,
   room_type: string,
   created_at: number | null
-}
+} 
 
 export const localMsgStore = async ({
   id,
@@ -25,91 +25,86 @@ export const localMsgStore = async ({
   sender_id,
   content,
   type = 'text',
-  media_url,
+  content_url,
   attachments = [],
   reply_to,
   disappears_at,
   to,
   room_type = 'private',
   created_at
-} : Message, local = true) => {
+} : Message, local: boolean = true) => {
   try {
     const db = await getDb();
-    const message_id = await uuidv4();
+    const message_id = uuidv4();
     const timestamp = now();
+    
+    const finalId = id || message_id;
+    const finalCreatedAt = created_at || timestamp;
+    
     const message = {
-      id: id || message_id,
+      id: finalId,
       chat_id,
       sender_id,
       content,
       type,
-      media_url: media_url || null,
+      content_url: content_url || null,
       reply_to: reply_to || null,
       status: 'Sending',
-      created_at: created_at || timestamp,
-      updated_at: created_at || timestamp,
-      disappears_at: disappears_at || null
+      created_at: finalCreatedAt,
+      updated_at: finalCreatedAt,
+      disappears_at: disappears_at || null,
+      status_at: timestamp
     };
-    //console.log(message);
-    const checkIfAlreadyExist = await db?.getAllAsync('SELECT * FROM messages WHERE id = ?', [message.id])
-    console.log(checkIfAlreadyExist);
-    if (checkIfAlreadyExist.length) return 
+    const checkIfAlreadyExist = await db?.getFirstAsync('SELECT id FROM messages WHERE id = ?', [message.id]);
+    if (checkIfAlreadyExist) return;
     
-    // Insert message
-    await db?.runAsync(
-      `INSERT INTO messages
-        (
-          id,
-          chat_id,
-          sender_id,
-          content,
-          type,
-          media_url,
-          reply_to,
-          status,
-          created_at,
-          updated_at,
-          disappears_at
-        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      Object.values(message)
-    );
-    
-    //Insert pendings
-    if (local) {
+    await db?.withTransactionAsync(async () => {
       await db?.runAsync(
-        `INSERT INTO pendings
-          (
-            message_id,
-            toUser,
-            room_type
-          )
-         VALUES (?, ?, ?)`,
-        [message.id, to, room_type]
+        `INSERT INTO messages (
+            id, chat_id, sender_id, content, type, content_url, 
+            reply_to, status, created_at, updated_at, disappears_at, status_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          message.id,
+          message.chat_id,
+          message.sender_id,
+          message.content,
+          message.type,
+          message.content_url,
+          message.reply_to,
+          message.status,
+          message.created_at,
+          message.updated_at,
+          message.disappears_at,
+          message.status_at
+        ]
       );
-    }
-    
-    // Insert attachments
-    for (const att of attachments) {
-      const att_id = uuidv4();
+      
+      if (local) {
+        await db?.runAsync(
+          `INSERT INTO pendings (message_id, toUser, room_type) VALUES (?, ?, ?)`,
+          [message.id, to, room_type]
+        );
+      }
+     
+      for (const att of attachments) {
+        await db?.runAsync(
+          `INSERT INTO attachments (id, message_id, type, uri, width, height, duration, size, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [uuidv4(), message.id, att.type, att.uri, att.width || null, att.height || null, att.duration || null, att.size || null, timestamp]
+        );
+      }
+      
       await db?.runAsync(
-        `INSERT INTO attachments (id, message_id, type, uri, width, height, duration, size, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [att_id, message_id, att.type, att.uri, att.width || null, att.height || null, att.duration || null, att.size || null, timestamp]
+        `UPDATE chats SET last_message_id = ?, last_message_preview = ?, last_message_at = ?, last_message_sender_id = ? WHERE id = ?`,
+        [message.id, content, message.created_at, message.sender_id, message.chat_id]
       );
-    }
+    });
     
-    // Update chat last message
-    await db?.runAsync(
-      `UPDATE chats SET last_message_id = ?, last_message_preview = ?, last_message_at = ?, last_message_sender_id = ? WHERE id = ?`,
-      [message_id, content, timestamp, message.sender_id, chat_id]
-    );
-    
-    // Emit message to UI
-    // messageEmitter.emit('new_message', message);
-    return message; // local message with ID
+    AppEvent.emit(Events.MSG_SEND, message);
+    return message;
   } catch (error) {
-    console.error(error);
+    console.error("Local Store Error:", error);
   }
 };
 

@@ -4,7 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react-native';
 import { X, Ellipsis } from 'lucide-react-native'
 import { BubbleChatIcon, SearchIcon, FavouriteIcon, Notification01Icon, Home03Icon, UserMultipleIcon } from '@hugeicons/core-free-icons';
 import Header from '@/components/header'
-import { useState, useEffect, useContext, useCallback } from 'react'
+import React, { useCallback, useContext, useEffect, useState } from 'react'
 import trans from '@/hooks/fetch'
 import { AuthContext } from '@/utils/authContext'
 import dateFormat from '@/utils/day.js'
@@ -13,6 +13,8 @@ import { Toaster } from '@/components/reusables/systemToast'
 import haptics from '@/hooks/haptics'
 import ChatSkeleton from '@/components/skeletons/chat_skeleton'
 import RequestView from '@/components/reusables/request/requestView'
+import AppEvent, { Events } from '@/utils/eventEmitter'
+import { getDb } from '@/storage/db';
 
 export default function inbox(){
   const [requests, setRequests] = useState([])
@@ -35,10 +37,19 @@ export default function inbox(){
     setRefreshing(false)
   })
   
+  useEffect(() => {
+    AppEvent.on(Events.REQUEST_SUBMISSION, (data) => {
+      if (!data) return;
+      setRequests((prev) => prev.filter(r => r.user_id !== data.user_id))
+    })
+  }, [])
+  
+  
   const getrequests = async () => {
     if (!authContext.user.id) {
       return
     }
+    return await getReqs()
     try {
       const res = await trans(`/api/requests/mine/get`, {
         method: 'GET',
@@ -64,6 +75,33 @@ export default function inbox(){
       setLoading(false)
     }
     setLoading(false)
+  }
+  
+  const getReqs = async () => {
+    try {
+      const db = await getDb()
+      const getAllReqs = await db?.getAllAsync(`
+        SELECT 
+          u.user_id,
+          u.name,
+          u.username,
+          u.avatar,
+          m.chat_id,
+          m.content,
+          m.created_at
+        FROM chats c
+        JOIN messages m ON m.id = c.last_message_id
+        JOIN users u ON u.user_id = m.sender_id
+        WHERE c.status = 'pending'
+        ORDER BY m.created_at DESC
+      `)
+      setRequests(getAllReqs)
+      setLoading(false)
+    } catch (error) {
+      toast('Failed to load sent requests.')
+      setLoading(false)
+      console.error(error);
+    }
   }
   
   const get_sent_reqs = async () => {
@@ -140,6 +178,7 @@ export default function inbox(){
           <TouchableOpacity onPress={ async () => { 
             await setRequestMode(1)
             await handleViber.Medium()
+            await getReqs()
           }} style={{
             height: '100%',
             width: '33%',
@@ -199,7 +238,7 @@ export default function inbox(){
         
         <FlatList 
           data={requests}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.user_id}
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           refreshControl={
@@ -219,7 +258,6 @@ export default function inbox(){
               key={index}
               item={item} 
               isLast={item.id === requests[requests.length - 1].id} 
-              onSubmit={(id) => accept_req(id)}
               //onDecline={decline_req}
             />
           )}

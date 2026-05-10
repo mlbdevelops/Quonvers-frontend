@@ -111,37 +111,6 @@ const CreateMoment = () => {
   }, [])
   
   
-  {/*const expiration_options = [
-    {
-      label: '1 month(default)',
-      jsdate: (Date.now() + 1000 * 60 * 60 * 24 * 30)
-    },
-    {
-      label: '2 weeks',
-      jsdate: (Date.now() + 1000 * 60 * 60 * 24 * 14)
-    },
-    {
-      label: '1 week',
-      jsdate: (Date.now() + 1000 * 60 * 60 * 24 * 7)
-    },
-    {
-      label: '3 days',
-      jsdate: (Date.now() + 1000 * 60 * 60 * 24 * 3)
-    },
-    {
-      label: '1 day',
-      jsdate: (Date.now() + 1000 * 60 * 60 * 24 * 1)
-    },
-    {
-      label: '7 hours',
-      jsdate: (Date.now() + 1000 * 60 * 60 * 7)
-    },
-    {
-      label: '3 hours',
-      jsdate: (Date.now() + 1000 * 60 * 60 * 3)
-    },
-  ]*/}
-  
   useEffect(() => {
     const currentWord = words[wordIndex];
     const typingSpeed = 30;
@@ -331,7 +300,7 @@ const CreateMoment = () => {
                       color: 'white',
                       fontWeight: 'bold',
                     }}>Public</Text>
-                    <ChevronRight size={16.5} color='white'/>
+                    <ChevronDown size={16.5} color='white'/>
                   </View>
                   <Animated.View style={[
                     opacityStyle
@@ -370,7 +339,7 @@ const CreateMoment = () => {
             <TextInput
               multiline
               maxLines={50}
-              placeholder={'Caption goes here...'}
+              placeholder={"What's on your mind?"}
               placeholderColor='darkgray'
               cursorColor='#6a69fe'
               selectionColor="#6a69fe"

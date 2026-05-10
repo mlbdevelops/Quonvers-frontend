@@ -2,14 +2,44 @@ import Image from './Image';
 import { View, Text, TouchableHighlight, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
 import { useState, useEffect } from 'react'
+import AppEvent, { Events } from '@/utils/eventEmitter'
+import DateFormat from '@/utils/day'
+import { storage } from '@/storage/mmkv'
+import { socket } from '@/hooks/sockets/socket_provider';
 
 export default function ChatBox({chat}) {
-  const [has_unread, setHas_unread] = useState(chat?.unread_count > 0)
+  const [unread_count, setUnreadCount] = useState(chat.unread_count || 0)
+  let has_unread = unread_count >= 1
+  const [content, setContent] = useState(chat.last_message_preview)
+  const [timestamp, setTimeStamp] = useState(chat.last_message_at)
+  const [sender_id, setSender_id] = useState(chat.last_message_sender_id)
+  const { user } = JSON.parse(storage.getString('user'))
+  
+  useEffect(() => {
+    socket.on('message:receive', (data) => {
+      if (data.sender_id !== chat.recipient_id || data.sender_id === user.id) return
+      setUnreadCount((prev) => typeof prev == 'number' && prev + 1)
+      setContent(data?.content),
+      setTimeStamp(data?.created_at)
+      setSender_id(data?.sender_id)
+    })
+    
+    AppEvent.on(Events.MSG_SEND, (data) => {
+      if(data.sender_id !== chat.recipient_id) return
+      setContent(data?.content),
+      setTimeStamp(data?.created_at)
+      setSender_id(data?.sender_id)
+    })
+  }, [])
+  
+  console.log('Has unread =>> ', has_unread, unread_count)
+  
   return(
     <TouchableHighlight
       underlayColor='#1d1d1d6c'
       onPress={() => {
-        setHas_unread(false)
+        has_unread = false
+        setUnreadCount(0)
         router.push({
           pathname: '/pages/chat',
           params: {
@@ -19,8 +49,9 @@ export default function ChatBox({chat}) {
             name: chat.recipient_name,
             recipient_id: chat.recipient_id
           }
-        })}
+        })
       }
+    }
     >
       <View style={styles.box}>
         <Image
@@ -49,7 +80,7 @@ export default function ChatBox({chat}) {
               fontWeight: !has_unread? 'normal' : 'bold',
               color: !has_unread? 'darkgray' : 'white',
             }}>
-            {chat?.last_message_preview? chat?.last_message_preview : 'Send a message'}
+            {content? `${sender_id == user.id? 'You: ': `${chat?.recipient_name?.split(' ')[0]}: `}${content}` : 'Send a message'}
           </Text>
         </View>
         <View style={styles.controls}>
@@ -58,14 +89,14 @@ export default function ChatBox({chat}) {
             color: !has_unread? 'darkgray' : 'white',
             fontSize: 12,
             marginBottom: 4,
-          }}>4:18PM</Text>
+          }}>{DateFormat(timestamp * 1000)}</Text>
           <View style={{
             ...styles.badge,
             opacity: has_unread? 1 : 0,
-            width: chat?.unread_count >= 9? 28 : 20,
+            width: unread_count >= 9? 28 : 20,
           }}><Text style={{
             color: 'white',
-          }}>{chat?.unread_count}</Text></View>
+          }}>{unread_count}</Text></View>
         </View>
       </View>
     </TouchableHighlight>

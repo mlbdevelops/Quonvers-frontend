@@ -71,7 +71,7 @@ export default function feedScreen(){
           <TouchableOpacity onPress={() => router.push('/(protected)/pages/notification')}>
             <HugeiconsIcon color='white' icon={Notification01Icon} strokeWidth={1.8}/>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/pages/subscription_page')}>
+          <TouchableOpacity onPress={() => router.push('/pages/ex2')}>
             <Image avatar style={{
               height: 26,
               width: 26,
@@ -189,7 +189,7 @@ export default function feedScreen(){
           paddingBottom: 100,
         }}>
           {posts?.length? posts.map((post, i) => (
-            <Post post={post} key={i}/>
+            <Post isLast={i === posts.length - 1} post={post} key={i}/>
           )) : null}
           
           { loading? 

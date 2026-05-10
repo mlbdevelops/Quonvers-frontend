@@ -10,6 +10,7 @@ import { router } from 'expo-router'
 import { toast } from "@/utils/toaster/toast.ts"
 import { Toaster } from '@/components/reusables/systemToast'
 import { AuthContext } from '@/utils/authContext'
+import { v4 as uuidv4 } from 'uuid'
 
 const SearchValue = () => {
   const authContext = useContext(AuthContext)
@@ -176,7 +177,24 @@ const SearchValue = () => {
         }}>No user found!</Text> : null}
         
         {query.map((item, i) => (
-          <Pressable onPress={() => send_req(item.id)} key={i} style={{
+          <Pressable onPress={() => {
+            router.push({
+              pathname: '/pages/chat',
+              params: {
+                chat_id: uuidv4(),
+                chat_type: 'private',
+                avatar: item.avatar,
+                name: item.name,
+                recipient_id: item.id,
+                sender_data: JSON.stringify({
+                  id: item.id,
+                  avatar: item.avatar,
+                  name: item.name,
+                  username: item.username
+                })
+              }
+            })
+          }} key={i} style={{
             flexDirection: 'row',
             gap: 10,
             alignItems: 'center',

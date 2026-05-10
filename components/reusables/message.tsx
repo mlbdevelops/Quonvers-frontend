@@ -1,3 +1,4 @@
+import Image from './Image';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import { useState, useEffect } from 'react'
@@ -5,23 +6,28 @@ import { HugeiconsIcon } from '@hugeicons/react-native';
 import { TickDouble02Icon } from '@hugeicons/core-free-icons';
 import { CheckCheck, Check } from 'lucide-react-native'
 import { shouldShowAvatar } from '../../utils/logics/is_same_sender.ts'
-//import dateFormat from '../../utils/day.ts'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime';
-dayjs.extend(relativeTime)
+import AppEvent, { Events } from '@/utils/eventEmitter'
+import DateFormat from '@/utils/day'
 
-const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, isLast}) => {
+const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, isLast, room_icon}) => {
   const [showTimestamp, setShowTimestamp] = useState(false)
   const [msgStatus, setMsgStatus] = useState(item.status)
+  const [msgStatusAt, setMsgStatusAt] = useState(item.status_at * 1000)
   const [reaction, setReaction] = useState([])
-  
-  useEffect(() => {
-    setMsgStatus(item.status)
-  }, [item.status])
   
   function hasAnyAlphabet() {
     return /\p{L}/u.test(item.content)
   }
+  
+  useEffect(() => {
+    AppEvent.on(Events.MSG_STATUS_UPDATE, (e) => {
+      if (e.msg_id === item.id) {
+        setMsgStatus(e.status)
+        setMsgStatusAt(e.at)
+      }
+    })
+  }, [])
+  
   
   return (
     <Pressable 
@@ -33,14 +39,13 @@ const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, i
         borderRadius: !hasAnyAlphabet()? 25 : undefined,
       }}
     >
-      {item.sender_id !== logged_user && <View style={{
+      {item.sender_id !== logged_user && <Image src={room_icon} style={{
         height: 26.5,
         width: 26.5,
         backgroundColor: '#1d1d1d',
         borderRadius: 50,
         transform: shouldShow? 'scale(1)' : 'scale(0)'
-      }}></View>}
-      
+      }}/>}
       <View style={{
         ...item.sender_id === logged_user? styles.msgRight.msgTextRight : styles.msgLeft.msgTextLeft,
         ...!hasAnyAlphabet() && styles.condStyle
@@ -57,10 +62,10 @@ const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, i
         color: '#707070',
         display: item.sender_id === logged_user && isMyLastMessage? undefined : 'none',
         marginRight: 5,
-        fontWeight: 'normal',
+        fontWeight: 'bold',
         fontSize: 13,
         marginTop: 1,
-      }}>{msgStatus}</Text>
+      }}>{msgStatus} {msgStatus !== 'Sending' && DateFormat(msgStatusAt)}</Text>
     </Pressable>
   );
 };
@@ -122,6 +127,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
+    fontWeight: 'bold',
     //margin: 3,
   }
 });

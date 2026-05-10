@@ -1,21 +1,51 @@
 import { socket } from '@/hooks/sockets/socket_provider'
 import { MessageStatus } from './Status'
 import { getDb } from '../../storage/db.ts';
+import { storage } from '@/storage/mmkv'
+import { createChat } from "@/utils/MessageServices/CreateChat"
+import { AuthContext } from '@/utils/authContext'
 
 const retry = (msg) => {
-  sendMessage(msg)
+  setTimeout(() => {
+    sendMessage(msg)
+  }, 2000);
 }
 
-export function sendMessage(msg, check) {
+export async function sendMessage(msg, recipient) {
+  
   try {
     if (!msg || !socket.connected) return
-    socket.emit("message:send", msg, async (ack) => {
-      if (!ack?.ok) return retry(msg);
-      const db = await getDb();
-      await MessageStatus(msg.id, 'Sent', ack.at);
-      await db?.runAsync('DELETE FROM pendings WHERE message_id = ?',[msg.id])
-      check('Message sent', msg.id)
-    });
+    const db = await getDb();
+    
+    const checkIfExist = await db?.getAllAsync('SELECT id FROM chats WHERE id = ?', [msg?.chat_id])
+    
+    if (checkIfExist.length) {
+      socket.emit("message:send", msg, async (ack) => {
+        //ack
+        if (!ack?.ok) return retry(msg);
+        await MessageStatus(msg.id, 'Sent', ack.at);
+        await db?.runAsync('DELETE FROM pendings WHERE message_id = ?',[msg.id])
+      });
+    }else{
+      const userString = storage.getString('user')
+      const { user } = JSON.parse(userString)
+      
+      await createChat(recipient, msg.chat_id)
+      
+      socket.emit("message:send", {...msg, sender_data: {
+        id: user.id,
+        avatar: user.avatar,
+        name: user.name,
+        username: user.username
+      }}, async (ack) => {
+        
+        //ack
+        if (!ack?.ok) return retry(msg);
+        await MessageStatus(msg.id, 'Sent', ack.at);
+        await db?.runAsync('DELETE FROM pendings WHERE message_id = ?',[msg.id])
+      });
+    }
+    
   } catch (err) {
     console.error('Error:', err);
   }

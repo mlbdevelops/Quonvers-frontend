@@ -6,12 +6,11 @@ import { FavouriteIcon, ThumbsUpIcon, SentIcon, Comment03Icon, RepostIcon, Repea
 import { Heart, MessageCircle, SendHorizontal, Repeat, Ellipsis } from 'lucide-react-native'
 import haptics from '@/hooks/haptics'
 import trans from '@/hooks/fetch'
-import dateFormat from '../../utils/day.ts'
+import dateFormat from '@/utils/day'
 import { useState, useEffect } from 'react'
 import { router } from 'expo-router'
 
-
-const Post = ({post: Post}) => {
+const Post = ({post: Post, isLast = false}) => {
   const { handleViber } = haptics()
   const [post, setPost] = useState<null | any>({})
   const [liked, setLiked] = useState(Post.has_liked || false)
@@ -43,7 +42,10 @@ const Post = ({post: Post}) => {
   }
   
   return (
-    <View style={styles.container}>
+    <View style={{
+      ...styles.container,
+      borderBottomWidth: isLast? 0 : 0,
+    }}>
       {/*<Text>Post</Text>*/}
       <Image cache='memory' style={{
         height: 35,
@@ -101,7 +103,7 @@ const Post = ({post: Post}) => {
           marginTop: 6,
           marginBottom: 2,
         }}>
-          <HugeiconsIcon icon={LocationIcon} color='darkgray' size={13}/>
+          <HugeiconsIcon strokeWidth={2} icon={LocationIcon} color='darkgray' size={13}/>
           <Text style={{
             color: 'darkgray',
             textAlign: 'left',
@@ -219,11 +221,8 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     flexDirection: 'row',
-    borderWidth: 1,
+    borderBottomWidth: 1,
     borderColor: '#1d1d1d',
-    borderLeftWidth: 0,
-    borderRightWidth: 0,
-    borderTopWidth: 0,
     paddingTop: 15,
     paddingRight: 10,
   },

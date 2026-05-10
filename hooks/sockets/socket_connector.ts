@@ -28,6 +28,8 @@ export default function SocketConnector() {
     socket.on("connect", async () => {
       console.log("Socket connected:", socket.id);
       if (token) socket.emit("new_connection", token);
+      const userString = storage.getString("user");
+      const { user } = JSON.parse(userString)
       const pending_msgs = await db?.getAllAsync(`
         SELECT 
           *
@@ -37,8 +39,8 @@ export default function SocketConnector() {
           pendings p 
             ON 
               p.message_id = m.id
-        WHERE status = ?`, 
-        ['Sending']
+        WHERE status = ? AND sender_id = ?`, 
+        ['Sending', user?.id]
       )
       for(const msg of pending_msgs){
         console.log(msg);

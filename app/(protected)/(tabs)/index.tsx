@@ -11,7 +11,7 @@ import ChatSkeleton from '@/components/skeletons/chat_skeleton'
 import Snap from '@/components/reusables/snap'
 import { ChevronRight, Edit, Ellipsis } from 'lucide-react-native'
 import trans from '@/hooks/fetch'
-import { useState, useEffect, useCallback } from 'react'
+import React, { useCallback, useEffect, useState, useRef } from 'react'
 import userContext from '@/hooks/useUser'
 import { useCustomAlert } from '@/hooks/alert'
 import { router } from 'expo-router'
@@ -20,6 +20,7 @@ import { Toaster } from '@/components/reusables/systemToast'
 import { socket } from '@/hooks/sockets/socket_provider';
 import { localMsgStore } from '@/utils/MessageServices/index'
 import { MessageStatus } from '@/utils/MessageServices'
+import { createChat } from "@/utils/MessageServices/CreateChat"
 
 export default function messagesScreen(){
   const { handleViber } = haptics()
@@ -31,36 +32,161 @@ export default function messagesScreen(){
   const [showModal, setShowModal] = useState(false)
   const { user } = userContext()
   const [networkProbs, setNetworkProbs] = useState(false)
+  const messageQueue = useRef([]);
+  const isProcessing = useRef(false);
   
   const onRefresh = useCallback( async () => {
-    setRefreshing(true)
-    await getChats()
-    setRefreshing(false)
+    try {
+      setRefreshing(true)
+      await getChats()
+    } catch (error) {
+      console.error(error);
+    }finally{
+      setRefreshing(false)
+    }
   })
   
   useEffect(() => {
-    socket.on('message:receive', async (msg) => {
-      //console.log(msg.chat_id);
-      await localMsgStore({
-        id: msg.id,
-        chat_id: msg.chat_id,
-        sender_id: msg.sender_id,
-        content : msg.content,
-        type: msg.type,
-        media_url : msg.media_url,
-        attachments: msg.attachments || [],
-        reply_to : msg.reply_to,
-        disappears_at : msg.disappears_at,
-        created_at: msg.created_at
-      }, false)
+    const processQueue = async () => {
+      if (isProcessing.current || messageQueue.current.length === 0) return;
       
-      socket.emit('message:delivered', {msg_id: msg.id, toUser: msg.sender_id, at: Date.now(), status: 'Delivered'})
-    })
-    socket.on('message:status', async (data) => {
-      await MessageStatus(data.msg_id, data.status, data.at)
-    })
-    return () => socket.disconnect()
-  }, [])
+      isProcessing.current = true;
+      const msg = messageQueue.current.shift();
+      
+      try {
+        const db = await getDb();
+        const senderId = msg.sender_id;
+        
+        const existingMember = await db.getFirstAsync(
+          'SELECT chat_id FROM chat_members WHERE user_id = ?',
+          [senderId]
+        );
+        
+        const finalChatId = existingMember?.chat_id
+        
+        /*if (existingMember?.chat_id) {
+          finalChatId = existingMember.chat_id;
+        } else {
+          finalChatId = msg.chat_id;
+          let userData = msg.sender_data;
+          
+          if (!userData) {
+            const response = await trans(`/api/_/get_user?user_id=${senderId}`, {
+              useToken: true,
+              method: 'GET',
+            });
+            userData = response.data;
+          }
+          
+          // Create chat BEFORE storing message
+          await createChat({ ...userData, msg_id: msg.id }, finalChatId, 'pending');
+        }*/
+        
+        await localMsgStore({ ...msg, chat_id: finalChatId, sender_id: senderId }, false);
+        
+        socket.emit('message:delivered', {
+          msg_id: msg.id,
+          toUser: senderId,
+          at: Date.now(),
+          status: 'Delivered',
+        });
+      } catch (error) {
+        console.error("Queue Processing Error:", error);
+      } finally {
+        isProcessing.current = false;
+        processQueue();
+      }
+    };
+    
+    const handleMessage = (msg) => {
+      messageQueue.current.push(msg);
+      processQueue();
+    };
+    
+    socket.on('message:receive', handleMessage);
+    return () => socket.off('message:receive', handleMessage);
+  }, []);
+  
+  useEffect(() => {
+    const handleStatus = async (data) => {
+      try {
+        await MessageStatus(data.msg_id, data.status, data.at);
+      } catch (e) {
+        console.error("Status Update Error:", e);
+      }
+    };
+    socket.on('message:status', handleStatus);
+    return () => socket.off('message:status', handleStatus);
+  }, []);
+  
+  useEffect(() => {
+    const handleRequest = async (data) => {
+      try {
+        await MessageStatus(data.msg_id, data.status, data.at);
+      } catch (e) {
+        console.error("Status Update Error:", e);
+      }
+    };
+    socket.on('message:status', handleRequest);
+    return () => socket.off('message:status', handleStatus);
+  }, []);
+  
+  /*useEffect(() => {
+    const handleMessage = async (msg) => {
+      try {
+        const db = await getDb();
+        const senderId = msg.sender_id;
+        let finalChatId;
+        
+        const existingMember = await db.getFirstAsync(
+          'SELECT chat_id FROM chat_members WHERE user_id = ?',
+          [senderId]
+        );
+        
+        if (existingMember?.chat_id) {
+          finalChatId = existingMember.chat_id;
+        } else {
+          finalChatId = msg.chat_id;
+          let userData = msg.sender_data;
+          if (!userData) {
+            const response = await trans(`/api/_/get_user?user_id=${senderId}`, { 
+              useToken: true, 
+              method: 'GET' 
+            });
+            userData = response.data;
+          }
+          setTimeout(async() => {
+            await createChat({ ...userData, msg_id: msg.id }, finalChatId, 'pending');
+          }, 20)
+        }
+        
+        setTimeout(async () => {
+          await localMsgStore({...msg, chat_id: finalChatId, sender_id: senderId}, false);
+        }, 50)
+        
+        socket.emit('message:delivered', {
+          msg_id: msg.id,
+          toUser: senderId,
+          at: Date.now(),
+          status: 'Delivered'
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    
+    const handleStatus = async (data) => {
+      await MessageStatus(data.msg_id, data.status, data.at);
+    };
+    
+    socket.on('message:receive', handleMessage);
+    socket.on('message:status', handleStatus);
+    
+    return () => {
+      socket.off('message:receive', handleMessage);
+      socket.off('message:status', handleStatus);
+    };
+  }, []);*/
   
   const getChatsFromDb = async () => {
     const db = await getDb();
@@ -72,7 +198,7 @@ export default function messagesScreen(){
         u.avatar AS chat_avatar,  
         r.user_id AS recipient_id,  
         r.nickname AS recipient_nickname,  
-        mc.muted AS isMuted,  
+        c.muted AS isMuted,  
         c.last_message_id,  
         c.last_message_preview,  
         c.last_message_at,  
@@ -87,12 +213,12 @@ export default function messagesScreen(){
       JOIN chat_members mc ON mc.chat_id = c.id  
       JOIN users u ON u.user_id = r.user_id  
       WHERE  
-        r.user_id != ?  -- Find the "other" person
-        AND mc.user_id = ?  -- Ensure "I" am in the chat
+        r.user_id != ?
+        AND mc.user_id = ?
+        AND c.status = 'accepted'
       GROUP BY c.id  
       ORDER BY c.pinned_at DESC, c.last_message_at DESC
     `, [user.id, user.id]);
-    //console.log(chats);
     setChats([...new Set([...chats])])
     setLoading(false)
   };
@@ -100,7 +226,7 @@ export default function messagesScreen(){
   const getChats = async () => {
     try {
       setLoading(true)
-      //await getChatsFromDb()
+      return await getChatsFromDb()
       const res = await trans('/api/chat/get_chat_list', {
         useToken: true,
         method: 'GET',
@@ -124,13 +250,18 @@ export default function messagesScreen(){
   
   const save_chats_locally = async () => {
     const db = await getDb()
+    
     const logc = await db.getAllAsync(`
+      SELECT * FROM chats
+    `,[])
+    
+    /*const logc = await db.getAllAsync(`
       DROP TABLE messages
     `,[])
     const log = await db.getAllAsync(`
       DROP TABLE chats
-    `,[])
-    console.log(logc);
+    `,[])*/
+    console.log('Index log =>> ', logc);
   }
   
   useEffect(() => {

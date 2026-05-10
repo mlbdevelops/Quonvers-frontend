@@ -5,7 +5,8 @@ export const getMessages = async ({ chat_id, cursor = null, limit = 5000 }: { ch
   const db = await getDb();
 
   const query = `
-    SELECT * FROM messages
+    SELECT * 
+    FROM messages
     WHERE chat_id = ? 
     ${cursor ? 'AND created_at < ?' : ''}
     ORDER BY created_at DESC

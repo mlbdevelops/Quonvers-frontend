@@ -45,7 +45,7 @@ const WriterSearch = () => {
       await AsyncStorage.setItem(recent_key, JSON.stringify(newData))
       setSearchHistory(newData)
       router.push({
-        pathname: '/(protected)/pages/search/writerSearch',
+        pathname: '/(protected)/pages/search/search_result',
         params: {
           value: val || searchQuery
         }

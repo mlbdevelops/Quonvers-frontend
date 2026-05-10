@@ -6,11 +6,14 @@ import { HugeiconsIcon } from '@hugeicons/react-native';
 import { X, Ellipsis } from 'lucide-react-native'
 import { BubbleChatIcon, SearchIcon, FavouriteIcon, Notification01Icon, Home03Icon, UserCircleIcon } from '@hugeicons/core-free-icons';
 import haptics from '@/hooks/haptics'
+import DateFormat from '@/utils/day'
 import { useState, useEffect, useContext } from 'react'
 import trans from '@/hooks/fetch'
 import { toast } from "@/utils/toaster/toast"
+import { createChat } from "@/utils/MessageServices/CreateChat"
 import { getDb } from '@/storage/db'
 import { v4 as uuidv4 } from 'uuid'
+import AppEvent, { Events } from '@/utils/eventEmitter'
 
 interface RequestProps {
   item?: any,
@@ -22,109 +25,20 @@ const RequestView = ({item, isLast, onSubmit}: RequestProps) => {
   const { handleViber } = haptics()
   const [loading, setLoading] = useState(false)
   
-  const createChat = async () => {
-    try {
-      const db = await getDb()
-      const chat = {
-        id: uuidv4(),
-        type: 'private',
-        created_at: Date.now(),
-      }
-      
-      const chat_member_me = {
-        id: uuidv4(),
-        chat_id: chat?.id,
-        user_id: item.receiver_id,
-        nickname: null,
-        role: 'member',
-        joined_at: chat.created_at
-      }
-      
-      const chat_member_recipient = {
-        id: uuidv4(),
-        chat_id: chat?.id,
-        user_id: item.sender_id,
-        nickname: null,
-        role: 'member',
-        joined_at: chat.created_at
-      }
-      
-      await db.runAsync(`
-        INSERT INTO chats(
-          id,
-          type,
-          created_at
-        )
-        VALUES(?, ?, ?)
-      `,Object.values(chat))
-      
-      //My membership
-      
-      await db?.runAsync(`
-        INSERT INTO chat_members(
-          id,
-          chat_id,
-          user_id,
-          nickname,
-          role,
-          joined_at
-        )
-        VALUES(?, ?, ?, ?, ?, ?)
-      `,Object.values(chat_member_me))
-      
-      // Recipient's membership
-      
-      await db?.runAsync(`
-        INSERT INTO chat_members(
-          id,
-          chat_id,
-          user_id,
-          nickname,
-          role,
-          joined_at
-        )
-        VALUES(?, ?, ?, ?, ?, ?)
-      `,Object.values(chat_member_recipient))
-      
-      const cache_user_data = {
-        id: uuidv4(),
-        username: item.sender_username,
-        name: item.sender_name,
-        user_id: item.sender_id,
-        avatar: item.sender_avatar,
-        bio: item.bio,
-        is_verified: item.is_verified,
-        created_at: Date.now()
-      }
-      
-      await db?.runAsync(`
-        INSERT INTO users(
-          id,
-          username,
-          name,
-          user_id,
-          avatar,
-          bio,
-          is_verified,
-          created_at
-        )
-        VALUES(?, ?, ?, ?, ?, ?, ?, ?)
-      `,Object.values(cache_user_data))
-      
-      console.log('Chat created successfully ✅');
-      return true
-    } catch (err) {
-      console.error('Error:', err);
-    }
-    return false
-  }
+  const submit = (id) => AppEvent.emit(Events.REQUEST_SUBMISSION, id)
+  console.log(item);
   
   const accept_req = async () => {
     try {
       if (!item) return
-      const createChatRecord = await createChat()
-      if (!createChatRecord) return
-      const accept = await trans('/api/chat/createConversation', {
+      const db = await getDb()
+      await db?.runAsync(`
+        UPDATE chats
+        SET status = ?
+        WHERE id = ?
+      `, ['accepted', item.chat_id])
+      
+      /*const accept = await trans('/api/chat/createConversation', {
         body: { 
           sender: item.sender_id,
           receiver: item.receiver_id,
@@ -134,10 +48,13 @@ const RequestView = ({item, isLast, onSubmit}: RequestProps) => {
       if (accept.code == 904) {
         toast('Request accepted ✓')
         onSubmit(item.id)
-      }
+      }*/
       console.log('Request accepted successfully 🤌🏻');
     } catch (err) {
       toast('Something went wrong, try again.')
+      console.error(err);
+    }finally{
+      submit(item)
     }
   }
   
@@ -154,7 +71,7 @@ const RequestView = ({item, isLast, onSubmit}: RequestProps) => {
         <Image style={{
           height: 50,
           width: 50,
-        }} src={item.sender_avatar}/>
+        }} src={item.avatar}/>
       </View>
       <View style={{
         flex: 1,
@@ -176,17 +93,17 @@ const RequestView = ({item, isLast, onSubmit}: RequestProps) => {
             fontWeight: 'bold',
             //maxWidth: '60%',
             flex: 1,
-            fontSize: 15,
-          }}>{item.sender_username}</Text>
+            fontSize: 17,
+          }}>{item.name}</Text>
           <Text style={{
             color: 'darkgray',
             fontSize: 13,
-          }}>{new Date(item.created_at).toLocaleTimeString()}</Text>
+          }}>{DateFormat(item.created_at * 1000)}</Text>
         </View>
-        <Text style={{
+        <Text numberOfLines={1} style={{
           color: 'white',
           marginTop: 2,
-        }}>Sent you a friend request</Text>
+        }}>{item.name}: {item.content}</Text>
         <View style={{
           flexDirection: 'row',
           gap: 10,
