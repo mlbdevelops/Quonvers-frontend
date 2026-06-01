@@ -3,7 +3,7 @@ import 'react-native-reanimated'
 import 'react-native-get-random-values'
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack'
 import { withLayoutContext } from 'expo-router'
-import { Toaster } from 'sonner-native'
+//import { Toaster } from 'sonner-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import SocketConnector from '@/hooks/sockets/socket_connector'
@@ -41,16 +41,15 @@ export default function ProtectedLayout() {
     <GestureHandlerRootView>
       <KeyboardProvider>
         <ChatProvider>
-          <SafeAreaProvider style={{ backgroundColor: '#0b0b0b', borderWidth: 0, flex: 1, }}>
+          <SafeAreaProvider style={{ backgroundColor: '#0a0a0a', borderWidth: 0, flex: 1, }}>
             <SocketConnector/>
-            <Toaster/>
             <Stack
               screenOptions={{
                 headerShown: false,
                 gestureEnabled: false,
                 //animation: 'fade_from_right',
-                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-                cardStyle: { backgroundColor: '#0b0b0b', borderWidth: 0, },
+                //cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+                cardStyle: { backgroundColor: '#0a0a0a', borderWidth: 0, },
               }}
             >
             </Stack>

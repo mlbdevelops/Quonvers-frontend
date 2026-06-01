@@ -9,6 +9,10 @@ import trans from '@/hooks/fetch'
 import dateFormat from '@/utils/day'
 import { useState, useEffect } from 'react'
 import { router } from 'expo-router'
+import One from './tiles/one.tsx'
+import Two from './tiles/two.tsx'
+import Three from './tiles/three.tsx'
+import Repost from '@/components/reusables/post/repost'
 
 const Post = ({post: Post, isLast = false}) => {
   const { handleViber } = haptics()
@@ -70,20 +74,12 @@ const Post = ({post: Post, isLast = false}) => {
             flexDirection: 'row',
             alignItems: 'flex-end',
           }}>
-            {post.post_surname? <Text 
-              style={{
-                //color: 'white',
-                fontWeight: 'bold',
-                fontSize: 15.5,
-                color: '#6a69fe',
-              }}>#{post.post_surname}</Text> : null }
-            
             <Text 
               style={{
-                color: post.post_surname? 'darkgray' : 'white',
-                fontWeight: post.post_surname? 'normal' : 'bold',
+                color: 'white',
+                fontWeight : 'bold',
                 fontSize: 15.5,
-              }}>{post.post_surname? '@' : null}{post.author_username}</Text>
+              }}>{post.author_name}</Text>
             <Text style={{color: 'darkgray', fontSize: 13, fontWeight: 'normal', marginBottom: .5,}}>{new Date(parseInt(post.created_at)).toLocaleDateString()}</Text>
           </View>
           <Ellipsis size={20} color={'darkgray'}/>
@@ -96,6 +92,9 @@ const Post = ({post: Post, isLast = false}) => {
           fontSize: 14.5,
         }}>{post.caption}</Text>
         
+        {post.caption?.startsWith('This') && <Three/>}
+        {post.caption?.startsWith('Hey') && <Three/>}
+        <Repost post={{user: post.author_name}}/>
         <View style={{
           flexDirection: 'row',
           alignItems: 'center',

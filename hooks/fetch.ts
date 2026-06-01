@@ -9,6 +9,7 @@ type FetcherProps = {
   toJson?: boolean;
   errMsg?: string;
   sub_url?: string;
+  errorLog: boolean
 };
 
 export default async function trans(sub_url: string, {
@@ -18,6 +19,7 @@ export default async function trans(sub_url: string, {
   body,
   toJson = true,
   errMsg,
+  errorLog = true
 }: FetcherProps) {
   try {
     const localhost = 'http://localhost:4000';
@@ -39,11 +41,13 @@ export default async function trans(sub_url: string, {
     const res = toJson ? await req.json() : await req.text();
     return res ?? null;
   } catch (error) {
-    throw new Error(errMsg || 'An error occurred!');
-    console.log(error);
+    throw new Error('An error occurred:', error);
+    //errorLog && console.log(error);
     return {
       success: false,
       errMsg
     };
   }
 }
+
+export const errorType = (type, message) => { type,   message }

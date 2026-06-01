@@ -1,15 +1,18 @@
+//import Image from '../components/reusables/Image';
 import React from 'react';
-import { View, Text, StyleSheet, Button, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, Button, TouchableOpacity, Image, ImageBackground } from 'react-native';
 import { useState, useEffect } from 'react'
 import { UserRoundPlus, KeyRound } from 'lucide-react-native'
 import { router } from 'expo-router'
 import FadeInView from '@/components/reusables/fadeInView'
 import StarsBackground from '@/components/onboardings/auth_bg_dots'
 import CharacterAnimation from '@/components/onboardings/character_animation'
+import FloatingProfiles from '@/components/onboardings/FloatingProfiles'
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { 
   MailIcon
 } from '@hugeicons/core-free-icons';
+import { LinearGradient } from 'expo-linear-gradient'
 
 export default function Authenticate() {
   const [text, setText] = useState('Quonvers');
@@ -19,7 +22,7 @@ export default function Authenticate() {
     'Quonvers',
     'Explore',
     'Meet',
-    'Feel',
+    'Control',
   ];
   
   async function signInWithGoogle() {
@@ -88,13 +91,55 @@ export default function Authenticate() {
   
   
   return(
-    <View style={styles.back}>
+    <ImageBackground source={require('../assets/onboarding/1778518080083.jpg')} style={styles.back}>
       {/*
       <CharacterAnimation/>
       <StarsBackground/>
       */}
-      <View style={styles.body}>
+      
+      <LinearGradient 
+        colors={['#22223d', '#0a0a0ace']} 
+        start={{ x:0, y:1 }} 
+        end={{x: 0, y:0 }} 
+        style={styles.body}>
+        
+        <FloatingProfiles/>
+        
         <View style={{
+          //flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 5,
+        }}>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 5,
+          }}>
+            <Text 
+              style={{
+                fontSize: 40,
+                fontWeight: 'bold',
+                color: 'white',
+              }}
+            >{text}</Text>
+            <FadeInView duration={400}>
+              <View style={{
+                height: 40,
+                width: 3.5,
+                backgroundColor: 'white',
+                borderRadius: 1,
+              }}></View>
+            </FadeInView>
+          </View>
+          <Text style={{
+            color: 'darkgray',
+            textAlign: 'center',
+          }}>Meet people and become discoverable only when you allow it.</Text>
+        </View>
+        
+        {/*<View style={{
           flexDirection: 'column',
           alignItems: 'center',
           gap: 10,
@@ -126,7 +171,7 @@ export default function Authenticate() {
               }}></View>
             </FadeInView>
           </View>
-        </View>
+        </View>*/}
         
         <View style={styles.optionsView}>
           <View style={{
@@ -140,7 +185,7 @@ export default function Authenticate() {
               {/*<HugeiconsIcon color='white' icon={MailIcon}/>*/}
               
               <Text style={{
-                color: 'white',
+                ...styles.text,
                 fontWeight: 'bold',
               }}>Sign up</Text>
             </TouchableOpacity>
@@ -152,7 +197,7 @@ export default function Authenticate() {
               </View>
                 */}
               <Text style={{
-                color: 'white',
+                ...styles.text,
                 fontWeight: 'bold',
               }}>Login</Text>
             </TouchableOpacity>
@@ -182,7 +227,7 @@ export default function Authenticate() {
                 height: 27,
                 width: 27,
               }} source={require('../assets/images/google_logo.png')}/>
-              <Text style={{color:'white', marginLeft: 4,}}> <Text style={{fontWeight: 'bold'}}>Google</Text></Text>
+              <Text style={{color:'white', marginLeft: 4,}}> <Text style={{fontWeight: 'bold', ...styles.text}}>Google</Text></Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={signInWithGoogle} style={{...styles.option}}>
               
@@ -190,7 +235,7 @@ export default function Authenticate() {
                 height: 27,
                 width: 27,
               }} source={require('../assets/images/fb_logo.png')}/>
-              <Text style={{color:'white', marginLeft: 7,}}><Text style={{fontWeight: 'bold'}}>Facebook</Text></Text>
+              <Text style={{color:'white', marginLeft: 7,}}><Text style={{fontWeight: 'bold', ...styles.text}}>Facebook</Text></Text>
             </TouchableOpacity>
           </View>
           <Text className='text-center text-[12px] pl-2 pr-2 text-white mt-2'>
@@ -200,8 +245,8 @@ export default function Authenticate() {
           </Text>
         </View>
         
-      </View>
-    </View>
+      </LinearGradient>
+    </ImageBackground>
   )
 }
 
@@ -244,7 +289,7 @@ const styles = StyleSheet.create({
     width: '48%',
     height: 45,
     borderRadius: 50,
-    backgroundColor: '#1d1d1dbd',
+    backgroundColor: '#ffffff28',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -271,8 +316,11 @@ const styles = StyleSheet.create({
   
   divider: {
     width: '30%',
-    backgroundColor: '#2c2c2c',
+    backgroundColor: '#ffffff28',
     height: 1,
     borderRadius: 50,
+  },
+  text: {
+    color: 'white',
   }
 })

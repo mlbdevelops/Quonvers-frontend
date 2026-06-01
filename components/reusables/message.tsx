@@ -62,7 +62,7 @@ const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, i
         color: '#707070',
         display: item.sender_id === logged_user && isMyLastMessage? undefined : 'none',
         marginRight: 5,
-        fontWeight: 'bold',
+        fontWeight: '460',
         fontSize: 13,
         marginTop: 1,
       }}>{msgStatus} {msgStatus !== 'Sending' && DateFormat(msgStatusAt)}</Text>

@@ -16,23 +16,14 @@ export default function ChatBox({chat}) {
   const { user } = JSON.parse(storage.getString('user'))
   
   useEffect(() => {
-    socket.on('message:receive', (data) => {
-      if (data.sender_id !== chat.recipient_id || data.sender_id === user.id) return
-      setUnreadCount((prev) => typeof prev == 'number' && prev + 1)
-      setContent(data?.content),
-      setTimeStamp(data?.created_at)
-      setSender_id(data?.sender_id)
-    })
-    
     AppEvent.on(Events.MSG_SEND, (data) => {
-      if(data.sender_id !== chat.recipient_id) return
+      if (data.chat_id !== chat.id) return
       setContent(data?.content),
-      setTimeStamp(data?.created_at)
       setSender_id(data?.sender_id)
+      setTimeStamp(data?.created_at)
+      if(data.sender_id !== user.id) return setUnreadCount((prev) => typeof prev == 'number' && prev + 1)
     })
   }, [])
-  
-  console.log('Has unread =>> ', has_unread, unread_count)
   
   return(
     <TouchableHighlight

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableWithoutFeedback, TouchableOpacity, TouchableHighlight } from 'react-native';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { Image02Icon, MicIcon, SettingsIcon, VideoIcon, ImagesIcon, CallAdd02Icon, AudioWave01Icon, Mic02Icon, AddCircleIcon, SmileIcon, SentIcon, Check01Icon, VideosIcon, FileIcon, PlayIcon, LocationIcon, UserIcon, File2Icon, CameraIcon } from '@hugeicons/core-free-icons';
+import { Image02Icon, MicIcon, SettingsIcon, VideoIcon, ImagesIcon, CallAdd02Icon, AudioWave01Icon, Mic02Icon, AddCircleIcon, SmileIcon, SentIcon, Check01Icon, VideosIcon, FileIcon, PlayIcon, LocationIcon, UserIcon, File2Icon, CameraIcon, LinkIcon } from '@hugeicons/core-free-icons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -39,7 +39,7 @@ const MessagesOptions = ({onClose}) => {
     },
     {
       label: 'Attachment',
-      icon: <HugeiconsIcon color='white'  icon={FileIcon}/>
+      icon: <HugeiconsIcon color='white'  icon={LinkIcon}/>
     },
     {
       label: 'Contact',

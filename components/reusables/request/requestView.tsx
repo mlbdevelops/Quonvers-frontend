@@ -26,7 +26,6 @@ const RequestView = ({item, isLast, onSubmit}: RequestProps) => {
   const [loading, setLoading] = useState(false)
   
   const submit = (id) => AppEvent.emit(Events.REQUEST_SUBMISSION, id)
-  console.log(item);
   
   const accept_req = async () => {
     try {
@@ -36,20 +35,8 @@ const RequestView = ({item, isLast, onSubmit}: RequestProps) => {
         UPDATE chats
         SET status = ?
         WHERE id = ?
-      `, ['accepted', item.chat_id])
-      
-      /*const accept = await trans('/api/chat/createConversation', {
-        body: { 
-          sender: item.sender_id,
-          receiver: item.receiver_id,
-          req_id : item.id 
-        }
-      })
-      if (accept.code == 904) {
-        toast('Request accepted ✓')
-        onSubmit(item.id)
-      }*/
-      console.log('Request accepted successfully 🤌🏻');
+      `, ['accepted', item.chat_id]
+      )
     } catch (err) {
       toast('Something went wrong, try again.')
       console.error(err);
@@ -103,7 +90,7 @@ const RequestView = ({item, isLast, onSubmit}: RequestProps) => {
         <Text numberOfLines={1} style={{
           color: 'white',
           marginTop: 2,
-        }}>{item.name}: {item.content}</Text>
+        }}>{item.name?.split(' ')[0]}: {item.content}</Text>
         <View style={{
           flexDirection: 'row',
           gap: 10,
@@ -120,7 +107,7 @@ const RequestView = ({item, isLast, onSubmit}: RequestProps) => {
             }} loading={loading} title={'Decline'} style={{
               height: 35,
               width: 90,
-              borderRadius: 12,
+              borderRadius: 13,
               backgroundColor: '#171717',
               justifyContent: 'center',
               alignItems: 'center',
@@ -131,7 +118,7 @@ const RequestView = ({item, isLast, onSubmit}: RequestProps) => {
             <Button viber loading={loading} onPress={accept_req} title={'Accept'} style={{
               height: 35,
               width: 90,
-              borderRadius: 12,
+              borderRadius: 13,
               backgroundColor: '#6a69fe',
               justifyContent: 'center',
               alignItems: 'center',
@@ -142,7 +129,7 @@ const RequestView = ({item, isLast, onSubmit}: RequestProps) => {
           <TouchableOpacity style={{
             height: 35,
             width: 35,
-            borderRadius: 12,
+            borderRadius: 13,
             backgroundColor: '#1d1d1db9',
             justifyContent: 'center',
             alignItems: 'center',

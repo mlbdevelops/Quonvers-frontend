@@ -1,6 +1,6 @@
 //import Image from '../components/reusables/Image';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, ActivityIndicator, FlatList, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Modal, ActivityIndicator, FlatList, Pressable, Dimensions } from 'react-native';
 import * as MediaLibrary from "expo-media-library";  
 import TabSwitcher from '@/components/reusables/tabSwitcher'
 import { FlashList } from '@shopify/flash-list'
@@ -8,6 +8,8 @@ import { Image } from 'expo-image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Header from '@/components/header'
 import { ArrowLeft } from 'lucide-react-native'
+
+const { width, height } = Dimensions.get('window');
 
 export const UseMediaPicker = ({onClose}) => {
   const [globalLoading, setGlobalLoading] = useState<boolean>(true)
@@ -73,8 +75,8 @@ export const UseMediaPicker = ({onClose}) => {
       }}>
         <View></View>
         <View style={{
-          height: 90,
           paddingHorizontal: 15,
+          height: 85,
           flexDirection: 'row',
           gap: 10,
           paddingTop: 30,
@@ -87,8 +89,13 @@ export const UseMediaPicker = ({onClose}) => {
             color: 'white',
             fontWeight: ' bold',
             fontSize: 18,
-          }}>Select an image</Text>
+          }}>Select a media</Text>
         </View>
+        <TabSwitcher style={{
+          marginHorizontal: 10,
+          width: '95%',
+          marginBottom: 10,
+        }} options={['Photos', 'Videos']}/>
         <View style={{
           flex: 1,
           alignItems: 'center',
@@ -112,10 +119,10 @@ export const UseMediaPicker = ({onClose}) => {
           keyExtractor={(item) => item.id}
           renderItem={({item, index: i}) => (
             <View style={{
-              height: 115,
-              width: 115,
+              height: width / 3.1,
+              width: width / 3.1,
               marginHorizontal: 3,
-              marginBottom: 5,
+              marginBottom: 4,
             }}>
               {item.mediaType == 'photo'? <Image source={{uri: item.uri}} style={{
                 flex: 1,

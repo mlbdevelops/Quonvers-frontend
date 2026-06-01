@@ -1,10 +1,10 @@
 import Image from '@/components/reusables/Image';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image as Img, RefreshControl, Alert, Modal } from 'react-native'
-import { HugeiconsIcon } from '@hugeicons/react-native';
 import { getDb } from '@/storage/db';
 import { storage } from '@/storage/mmkv';
+import { HugeiconsIcon } from '@hugeicons/react-native';
 import { BubbleChatIcon, SearchIcon, FavouriteIcon, Notification01Icon, Home03Icon, MenuIcon, UserCircleIcon, MailIcon, AddIcon, WifiOffIcon, Chat01Icon } from '@hugeicons/core-free-icons';
-import haptics from '../../../hooks/haptics.js'
+import haptics from '@/hooks/haptics.js'
 import Header from '@/components/header'
 import ChatBox from '@/components/reusables/chat_box'
 import ChatSkeleton from '@/components/skeletons/chat_skeleton'
@@ -21,6 +21,7 @@ import { socket } from '@/hooks/sockets/socket_provider';
 import { localMsgStore } from '@/utils/MessageServices/index'
 import { MessageStatus } from '@/utils/MessageServices'
 import { createChat } from "@/utils/MessageServices/CreateChat"
+import PushNotif from '@/utils/notifications'
 
 export default function messagesScreen(){
   const { handleViber } = haptics()
@@ -48,149 +49,161 @@ export default function messagesScreen(){
   
   useEffect(() => {
     const processQueue = async () => {
-      if (isProcessing.current || messageQueue.current.length === 0) return;
-      
       isProcessing.current = true;
-      const msg = messageQueue.current.shift();
       
       try {
         const db = await getDb();
-        const senderId = msg.sender_id;
-        
-        const existingMember = await db.getFirstAsync(
-          'SELECT chat_id FROM chat_members WHERE user_id = ?',
-          [senderId]
-        );
-        
-        const finalChatId = existingMember?.chat_id
-        
-        /*if (existingMember?.chat_id) {
-          finalChatId = existingMember.chat_id;
-        } else {
-          finalChatId = msg.chat_id;
-          let userData = msg.sender_data;
+        let msg;
+        while ((msg = messageQueue.current.shift())) {
+          if (!msg) continue;
           
-          if (!userData) {
-            const response = await trans(`/api/_/get_user?user_id=${senderId}`, {
-              useToken: true,
-              method: 'GET',
-            });
-            userData = response.data;
+          const senderId = msg.sender_id;
+          
+          const existingMember = await db.getFirstAsync(
+            'SELECT chat_id FROM chat_members WHERE user_id = ?',
+            [senderId]
+          );
+          
+          const finalChatId = existingMember?.chat_id || msg?.chat_id;
+          
+          if (!existingMember?.chat_id) {
+            let userData = msg.sender_data;
+            if (!userData) {
+              const response = await trans(`/api/_/get_user?user_id=${senderId}`, {
+                useToken: true, method: 'GET',
+              });
+              userData = response.data;
+            }
+            await createChat({ ...userData, msg_id: msg.id }, finalChatId, 'pending');
           }
-          
-          // Create chat BEFORE storing message
-          await createChat({ ...userData, msg_id: msg.id }, finalChatId, 'pending');
-        }*/
-        
-        await localMsgStore({ ...msg, chat_id: finalChatId, sender_id: senderId }, false);
-        
-        socket.emit('message:delivered', {
-          msg_id: msg.id,
-          toUser: senderId,
-          at: Date.now(),
-          status: 'Delivered',
-        });
+          await localMsgStore({ 
+            chat_id: finalChatId,
+            sender_id: senderId,
+            ...msg, 
+          });
+          await PushNotif('New message', msg.content)
+          socket.emit('message:delivered', {
+            msg_id: msg.id, toUser: senderId, at: Date.now(), status: 'Delivered',
+          });
+        }
       } catch (error) {
         console.error("Queue Processing Error:", error);
       } finally {
         isProcessing.current = false;
-        processQueue();
+        if (messageQueue.current.length > 0) {
+          processQueue();
+        }
       }
     };
     
     const handleMessage = (msg) => {
       messageQueue.current.push(msg);
-      processQueue();
+      if (!isProcessing.current) processQueue();
     };
     
     socket.on('message:receive', handleMessage);
     return () => socket.off('message:receive', handleMessage);
   }, []);
   
-  useEffect(() => {
-    const handleStatus = async (data) => {
-      try {
-        await MessageStatus(data.msg_id, data.status, data.at);
-      } catch (e) {
-        console.error("Status Update Error:", e);
-      }
-    };
-    socket.on('message:status', handleStatus);
-    return () => socket.off('message:status', handleStatus);
-  }, []);
-  
-  useEffect(() => {
-    const handleRequest = async (data) => {
-      try {
-        await MessageStatus(data.msg_id, data.status, data.at);
-      } catch (e) {
-        console.error("Status Update Error:", e);
-      }
-    };
-    socket.on('message:status', handleRequest);
-    return () => socket.off('message:status', handleStatus);
-  }, []);
-  
   /*useEffect(() => {
-    const handleMessage = async (msg) => {
-      try {
-        const db = await getDb();
-        const senderId = msg.sender_id;
-        let finalChatId;
+  const processQueue = async () => {
+    // 1. Guard against concurrent concurrent execution threads
+    if (isProcessing.current) return;
+    isProcessing.current = true;
+    
+    try {
+      const db = await getDb();
+      
+      // 2. Process items sequentially until the array is empty
+      while (messageQueue.current.length > 0) {
+        const msg = messageQueue.current[0]; // Look at the first item without removing it yet
+        if (!msg) {
+          messageQueue.current.shift();
+          continue;
+        }
         
+        const senderId = msg.sender_id;
+        
+        // Check chat membership
         const existingMember = await db.getFirstAsync(
           'SELECT chat_id FROM chat_members WHERE user_id = ?',
           [senderId]
         );
         
-        if (existingMember?.chat_id) {
-          finalChatId = existingMember.chat_id;
-        } else {
-          finalChatId = msg.chat_id;
+        const finalChatId = existingMember?.chat_id ?? msg?.chat_id;
+        
+        if (!existingMember?.chat_id) {
           let userData = msg.sender_data;
           if (!userData) {
-            const response = await trans(`/api/_/get_user?user_id=${senderId}`, { 
+            const response = await trans(`/api/_/get_user?user_id=${senderId}`, {
               useToken: true, 
-              method: 'GET' 
+              method: 'GET',
             });
             userData = response.data;
           }
-          setTimeout(async() => {
-            await createChat({ ...userData, msg_id: msg.id }, finalChatId, 'pending');
-          }, 20)
+          await createChat({ ...userData, msg_id: msg.id }, finalChatId, 'pending');
         }
         
-        setTimeout(async () => {
-          await localMsgStore({...msg, chat_id: finalChatId, sender_id: senderId}, false);
-        }, 50)
+        // Pass a dynamic status if the message isn't from the local user
+        await localMsgStore({ 
+          chat_id: finalChatId,
+          sender_id: senderId,
+          ...msg,
+          // Overwrite status if your localMsgStore supports dynamic status passing
+        });
         
         socket.emit('message:delivered', {
-          msg_id: msg.id,
-          toUser: senderId,
-          at: Date.now(),
-          status: 'Delivered'
+          msg_id: msg.id, 
+          toUser: senderId, 
+          at: Date.now(), 
+          status: 'Delivered',
         });
-      } catch (error) {
-        console.error(error);
+
+        // 3. ONLY shift it off the queue after it successfully saves completely
+        messageQueue.current.shift();
+      }
+    } catch (error) {
+      console.error("Queue Processing Error:", error);
+      // If an individual message fails, remove it so it doesn't block the whole queue forever
+      messageQueue.current.shift(); 
+    } finally {
+      // 4. Release the lock completely when the loop is done
+      isProcessing.current = false;
+      
+      // 5. Catch any messages that snuck into the queue while we were wrapping up
+      if (messageQueue.current.length > 0) {
+        processQueue();
+      }
+    }
+  };
+  
+  const handleMessage = (msg) => {
+    messageQueue.current.push(msg);
+    processQueue();
+  };
+  
+  socket.on('message:receive', handleMessage);
+  return () => socket.off('message:receive', handleMessage);
+}, []);*/
+
+  
+  useEffect(() => {
+    const handleStatus = async (data) => {
+      try {
+        await MessageStatus(data.msg_id, data.status, data.at);
+      } catch (e) {
+        console.error("Status Update Error:", e);
       }
     };
-    
-    const handleStatus = async (data) => {
-      await MessageStatus(data.msg_id, data.status, data.at);
-    };
-    
-    socket.on('message:receive', handleMessage);
     socket.on('message:status', handleStatus);
-    
-    return () => {
-      socket.off('message:receive', handleMessage);
-      socket.off('message:status', handleStatus);
-    };
-  }, []);*/
+    //return () => socket.off('message:status', handleStatus);
+  }, []);
   
   const getChatsFromDb = async () => {
     const db = await getDb();
     //return save_chats_locally()
+    // mc = my chat
+    // r = recipient 
     const chats = await db?.getAllAsync(`  
       SELECT  
         c.id,  
@@ -349,128 +362,6 @@ export default function messagesScreen(){
             fontWeight: '400',
           }}>Search...</Text>
         </TouchableOpacity>
-       
-        {/*<View style={{
-            flexDirection: 'column',
-            alignItems: 'center',
-            width: '100%',
-            padding: 15,
-            paddingBottom: 0,
-            //borderWidth: 2,
-            //borderColor: 'red',
-          }}>
-          {<View style={{
-            //display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            width: '100%',
-            alignItems: 'center',
-            //borderWidth: 2,
-            //borderColor: 'red'
-          }}>
-            <Text style={{
-              fontWeight: 'bold',
-              color: 'white',
-              opacity: 0,
-            }}>Friends snaps</Text>
-            <TouchableOpacity style={{
-              opacity: 0,
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}><Text style={{
-              color: '#6a69fe',
-            }}>View more</Text></TouchableOpacity>
-          </View>}
-          
-          {chats.length > 0 && 
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'flex-start',
-              width: '92%',
-              paddingTop: 20,
-              paddingBottom: 0,
-              gap: 10,
-              flex: 1,
-            }}>
-              <Snap/>
-              <Snap/>
-              <Snap/>
-            </View>
-          }
-        </View> */}
-        
-        <View style={{
-          //height: 20,
-          //backgroundColor: 'red',
-          flexDirection: 'row',
-          gap: 10,
-          marginTop: 17,
-          width: '92%',
-        }}>
-          <TouchableOpacity onPress={async() => {
-            setSectionIndex(0)
-            await handleViber.Medium()
-          }} style={{
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: !sectionIndex? 'rgba(106,105,254,0.117)' : '#1d1d1d',
-            paddingVertical: 5,
-            paddingHorizontal: 13,
-            borderRadius: 50,
-          }}>
-            <Text style={{
-              color: !sectionIndex? '#6a69fe' : 'darkgray',
-            }}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={ async () => {
-            setSectionIndex(1)
-            await handleViber.Medium()
-          }} style={{
-            alignItems: 'center',
-            backgroundColor: sectionIndex == 1? 'rgba(106,105,254,0.117)' : '#1d1d1d',
-            borderRadius: 50,
-            padding: 5,
-            paddingVertical: 5,
-            paddingHorizontal: 13,
-            justifyContent: 'center',
-          }}>
-            <Text style={{
-              color: sectionIndex == 1? '#6a69fe' : 'darkgray',
-            }}>Favorites</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={async() => {
-            setSectionIndex(2)
-            await handleViber.Medium()
-          }} style={{
-            backgroundColor: sectionIndex == 2? 'rgba(106,105,254,0.117)' : '#1d1d1d',
-            borderRadius: 50,
-            alignItems: 'center',
-            padding: 5,
-            paddingVertical: 5,
-            paddingHorizontal: 13,
-            justifyContent: 'center',
-          }}>
-            <Text style={{
-              color: sectionIndex == 2? '#6a69fe' : 'darkgray',
-            }}>Unread</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={async() => {
-            setSectionIndex(3)
-            await handleViber.Medium()
-          }} style={{
-            backgroundColor: sectionIndex == 3? 'rgba(106,105,254,0.117)' : '#1d1d1d',
-            borderRadius: 50,
-            alignItems: 'center',
-            padding: 5,
-            paddingVertical: 5,
-            paddingHorizontal: 13,
-            justifyContent: 'center',
-          }}>
-            <Text style={{
-              color: sectionIndex == 3? '#6a69fe' : 'darkgray',
-            }}>Channel</Text>
-          </TouchableOpacity>
-        </View>
         
         <View
           style={{
@@ -479,7 +370,7 @@ export default function messagesScreen(){
             paddingLeft: 3,
             paddingRight: 3,
             width: '100%',
-            marginTop: 10,
+            marginTop: 5,
             marginBottom: chats.length && 50,
           }}
         >

@@ -24,6 +24,7 @@ const Login = () => {
   const [wrong_pass_attempts, setAttempts] = useState<number>(0)
   const [showPassword, setshowPassword] = useState<boolean>(false)
   const { handleViber } = haptics()
+  
   const login = async () => {
     try {
       if (!email || !password) {
@@ -39,8 +40,9 @@ const Login = () => {
       })
       if (res.code == 803) {
         setAttempts(wrong_pass_attempts + 1)
-        if(wrong_pass_attempts >= 3){
-          alert(null, 'The password entered is wrong, we recommend to reset your account password.', [
+        if(wrong_pass_attempts >= 2){
+          alert(null, 'The password entered is wrong, we recommend to reset your account password or contact us if you encounter any login issues.', [
+            {text: 'Contact us', primary : false},
             {text: 'Try again', primary : false},
             {text: 'Reset password', primary: true}
           ])
@@ -75,13 +77,11 @@ const Login = () => {
         authContext.logIn(res.user)
       }
     } catch (err) {
-      toast(`Network error`)
+      toast(`An error occured, please try again`)
       setIsLoading(false)
       //console.error(err);
     }
   }
-  
-  
   
   return (
     <View style={styles.container}>
@@ -165,6 +165,7 @@ const Login = () => {
             inputType='email'
             placeholderTextColor='darkgray' 
             placeholder='Enter your email or username'
+            autoCapitalize={'none'}
             keyboardType='email-adress'
             value={email}
             cursorColor='#6a69fe'

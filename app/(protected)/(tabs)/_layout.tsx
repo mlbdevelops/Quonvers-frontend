@@ -44,13 +44,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="status"
-      />
-      <Tabs.Screen
         name="requests"
       />
       <Tabs.Screen
         name="feed"
+      />
+      <Tabs.Screen
+        name="bubbles"
+      />
+      <Tabs.Screen
+        name="testtab"
       />
     </Tabs>
   );

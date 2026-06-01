@@ -7,7 +7,7 @@ export const MessageStatus = async (message_id, status, status_at) => {
     const db = await getDb();
     const timestamp = now();
     const getMsgStatus = await db?.getAllAsync('SELECT status FROM messages WHERE id = ?', [message_id])
-    if(getMsgStatus[0].status === 'Seen') return;
+    if(getMsgStatus[0]?.status === 'Seen') return;
     
     await db?.runAsync(
       `

@@ -71,7 +71,7 @@ export default function feedScreen(){
           <TouchableOpacity onPress={() => router.push('/(protected)/pages/notification')}>
             <HugeiconsIcon color='white' icon={Notification01Icon} strokeWidth={1.8}/>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/pages/ex2')}>
+          <TouchableOpacity onPress={() => router.push('/pages/profiles/profile')}>
             <Image avatar style={{
               height: 26,
               width: 26,

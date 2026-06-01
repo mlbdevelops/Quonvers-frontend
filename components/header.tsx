@@ -15,7 +15,8 @@ export default function Header({
   height,
   isBack = false,
   hd = false,
-  backIcon = (<ArrowLeft color='white'/>)
+  backIcon = (<ArrowLeft color='white'/>),
+  titleStyle
 }) {
   return (
     <Stack.Screen
@@ -27,7 +28,13 @@ export default function Header({
         },
         headerTitleAlign,
         headerTitle: () => (
-          <Text style={{ fontSize: 22, fontWeight: 'bold', color: 'white', }}>
+          <Text numberOfLines={1} 
+            style={{ 
+              fontSize: 22, 
+              fontWeight: 'bold',
+              color: 'white',
+              ...titleStyle
+            }}>
             {title}
           </Text>
         ),

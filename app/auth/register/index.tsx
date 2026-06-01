@@ -127,6 +127,7 @@ const register = () => {
           keyboardType='email-adress'
           cursorColor='#6a69fe'
           selectionColor="#6a69fe"
+          autoCapitalize={'none'}
           onChangeText={(value) => setEmail(value.toLowerCase().trim())}
           style={{
             width: '100%',

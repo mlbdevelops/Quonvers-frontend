@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback } from 'react';
+import React, { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  BackHandler
 } from 'react-native';
 
 import BottomSheet, {
@@ -13,34 +14,37 @@ import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetScrollView
 } from '@gorhom/bottom-sheet';
-
+import Sheet from '@/components/reusables/bottomSheet'
 const { width } = Dimensions.get('window');
 
 export default function CrazyBottomSheetScreen() {
   const bottomSheetRef = useRef(null);
-
-  const snapPoints = useMemo(() => ['25%', '55%', '90%'], []);
+  const [isSheetOpened, setIsSheetOpened] = useState(false)
+  const snapPoints = useMemo(() => ['50%', '100%'], []);
+  
+  useEffect(() => {
+    //return console.log(BackHandler)
+    const backhandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if(bottomSheetRef.current && isSheetOpened) {
+        bottomSheetRef.current?.close()
+        setIsSheetOpened(false)
+        return true
+      }
+      return false
+    })
+    return () => backhandler.remove()
+  })
 
   const openSheet = useCallback(() => {
-    bottomSheetRef.current?.snapToIndex(1);
+    setIsSheetOpened(true)
+    bottomSheetRef.current?.snapToIndex(0);
   }, []);
 
   const closeSheet = useCallback(() => {
+    setIsSheetOpened(false)
     bottomSheetRef.current?.close();
   }, []);
-
-  const renderBackdrop = useCallback(
-    (props) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.6}
-      />
-    ),
-    []
-  );
-
+  
   return (
     <View style={styles.container}>
       {/* Floating Glow */}
@@ -70,18 +74,14 @@ export default function CrazyBottomSheetScreen() {
       </TouchableOpacity>
 
       {/* Bottom Sheet */}
-      <BottomSheet
+      <Sheet
         ref={bottomSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={styles.indicator}
+        snaps={['50%']}
+        index={1}
       >
-        <BottomSheetView style={styles.contentContainer}>
-          <BottomSheetScrollView style={{
+          <BottomSheetScrollView showsVerticalScrollIndicator={false} style={{
             flex: 1,
+            height: 300,
           }}>
           <Text style={styles.sheetTitle}>
             Welcome To Quonvers
@@ -221,8 +221,7 @@ export default function CrazyBottomSheetScreen() {
             </Text>
           </TouchableOpacity>
           </BottomSheetScrollView>
-        </BottomSheetView>
-      </BottomSheet>
+      </Sheet>
     </View>
   );
 }
@@ -296,13 +295,13 @@ const styles = StyleSheet.create({
   },
 
   sheetBackground: {
-    backgroundColor: '#0f172a',
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
+    backgroundColor: '#171717',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
 
   indicator: {
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'rgba(122,122,122,0.4)',
     width: 70,
   },
 

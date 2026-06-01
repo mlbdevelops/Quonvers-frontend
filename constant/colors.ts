@@ -14,3 +14,6 @@ const white_pallette = {
   bodyColor: '#0a0a0a',
 }
 
+export const colors = {
+  theme: '#111320'
+}

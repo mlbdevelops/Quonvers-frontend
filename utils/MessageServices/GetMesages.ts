@@ -12,10 +12,11 @@ export const getMessages = async ({ chat_id, cursor = null, limit = 5000 }: { ch
     ORDER BY created_at DESC
     LIMIT ?
   `;
-
+  
   const params = cursor 
     ? [chat_id, cursor, limit] 
     : [chat_id, limit];
   
-  return await db.getAllAsync(query, ...params);
+  const msgs = await db.getAllAsync(query, ...params);
+  return msgs
 }

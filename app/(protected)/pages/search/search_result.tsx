@@ -194,6 +194,13 @@ const SearchValue = () => {
                 })
               }
             })
+            
+            /*router.push({
+              pathname: '/pages/profiles/other',
+              params: { 
+                user: JSON.stringify(item)
+              }
+            })*/
           }} key={i} style={{
             flexDirection: 'row',
             gap: 10,

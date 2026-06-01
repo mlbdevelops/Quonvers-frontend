@@ -8,10 +8,12 @@ type ImageProps = {
   src: string
   style: object
   cache: 'memory' | 'none' | 'disk' | 'memory-disk' | 'immutable'
-  avatar: boolean
+  avatar: boolean,
+  size: number,
+  bg: string | null
 }
 
-const Image = ({src, style, cache, avatar = false}: ImageProps) => {
+const Image = ({src, style, cache, avatar = false, size = 10, bg = null}: ImageProps) => {
   const { user } = userContext()
   return (
     <>
@@ -35,6 +37,9 @@ const Image = ({src, style, cache, avatar = false}: ImageProps) => {
         cachePolicy={avatar? 'memory-disk' : cache}
         style={{
           ...styles.image,
+          height: size,
+          width: size,
+          backgroundColor: bg || styles.image.backgroundColor,
           ...style,
         }}
       />

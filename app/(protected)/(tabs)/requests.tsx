@@ -1,5 +1,5 @@
 import Image from '../../../components/reusables/Image';
-import { View, Text, TouchableOpacity, Button, Alert, Modal, ActivityIndicator, FlatList, Pressable, Image as Img, RefreshControl } from 'react-native'
+import { View, Text, TouchableOpacity, Button, Alert, Modal, ActivityIndicator, FlatList, Pressable, Image as Img, RefreshControl, Dimensions } from 'react-native'
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { X, Ellipsis } from 'lucide-react-native'
 import { BubbleChatIcon, SearchIcon, FavouriteIcon, Notification01Icon, Home03Icon, UserMultipleIcon } from '@hugeicons/core-free-icons';
@@ -10,11 +10,14 @@ import { AuthContext } from '@/utils/authContext'
 import dateFormat from '@/utils/day.js'
 import { toast } from "@/utils/toaster/toast.ts"
 import { Toaster } from '@/components/reusables/systemToast'
+import TabSwitcher from '@/components/reusables/tabSwitcher'
 import haptics from '@/hooks/haptics'
 import ChatSkeleton from '@/components/skeletons/chat_skeleton'
 import RequestView from '@/components/reusables/request/requestView'
 import AppEvent, { Events } from '@/utils/eventEmitter'
 import { getDb } from '@/storage/db';
+
+const { height } = Dimensions.get('window');
 
 export default function inbox(){
   const [requests, setRequests] = useState([])
@@ -159,85 +162,18 @@ export default function inbox(){
       <View style={{
         width: '100%',
         padding: 10,
-        gap: 20,
+        gap: 10,
         flex: 1,
         paddingVertical: 5,
       }}>
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          width: '100%',
-          borderRadius: 50,
-          height: 40,
-          backgroundColor: '#1d1d1db9',
-          padding: 4,
-          //borderWidth: 1,
-          //borderColor: '#262626',
-          justifyContent: 'space-between',
-        }}>
-          <TouchableOpacity onPress={ async () => { 
-            await setRequestMode(1)
-            await handleViber.Medium()
-            await getReqs()
-          }} style={{
-            height: '100%',
-            width: '33%',
-            borderRadius: 50,
-            backgroundColor: requestMode == 1? 'white' : 'transparent',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Text style={{
-              color: requestMode == 1? 'black' : 'white',
-            }}>Requests</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={ async () => {
-            await setRequestMode(2)
-            await handleViber.Medium()
-          }} style={{
-            height: '100%',
-            width: '33%',
-            borderRadius: 50,
-            backgroundColor: requestMode == 2? 'white' : 'transparent',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Text style={{
-              color: requestMode == 2? 'black' : 'white',
-            }}>Accepted</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={ async () => {
-            await setRequestMode(3)
-            await handleViber.Medium()
-          }} style={{
-            height: '100%',
-            width: '33%',
-            borderRadius: 50,
-            backgroundColor: requestMode == 3? 'white' : 'transparent',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Text style={{
-              color: requestMode == 3? 'black' : 'white',
-            }}>Sent</Text>
-          </TouchableOpacity>
-        </View>
-        
-        {loading && 
-          <View style={{
-            height: '100%',
-            width: '100%',
-          }}>
-            <ChatSkeleton/>
-            <ChatSkeleton/>
-            <ChatSkeleton/>
-            <ChatSkeleton/>
-            <ChatSkeleton/>
-          </View>
-        }
+        <TabSwitcher
+          onChange={({index}) => setRequestMode(index + 1)}
+          options={['Request','Accepted','Sent']}
+        />
         
         <FlatList 
           data={requests}
+          ListEmptyComponent={<Empty requestMode={requestMode}/>}
           keyExtractor={(item) => item.user_id}
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
@@ -262,31 +198,52 @@ export default function inbox(){
             />
           )}
         />
+        {loading && 
+          <View style={{
+            height: '100%',
+            width: '100%',
+          }}>
+            <ChatSkeleton/>
+            <ChatSkeleton/>
+            <ChatSkeleton/>
+            <ChatSkeleton/>
+            <ChatSkeleton/>
+          </View>
+        }
       </View>
-      {!loading && !requests.length && <View style={{
-        height: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-        //backgroundColor: 'red',
-        gap: 5
-      }}>
-        {/*<Img style={{
-          height: 200,
-          width: 200,
-          borderRadius: 50,
-          //backgroundColor: 'white',
-        }} source={require('../../../assets/no_results/no_results_5.jpg')}/>*/}
-        <HugeiconsIcon icon={UserMultipleIcon} size={100} color='white'/>
-        <Text style={{
-          fontSize: 25,
-          color: 'white',
-          fontWeight: 'bold',
-        }}>No request found!</Text>
-        <Text style={{
-          //fontSize: 13,
-          color: 'darkgray',
-        }}>{requestMode == 1? 'Your requests will appear here.' : requestMode == 2? 'Accepted requests will appear here.' : requestMode == 3? 'Sent requests will appear here.' : null}</Text>
-      </View>}
+    </View>
+  )
+}
+
+
+const Empty = ({requestMode}) => {
+  return(
+    <View style={{
+      height: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+      //backgroundColor: 'red',
+      gap: 5,
+      //backgroundColor: 'red',
+      flex: 1,
+      marginTop: height / 3.7,
+    }}>
+      {/*<Img style={{
+        height: 200,
+        width: 200,
+        borderRadius: 50,
+        //backgroundColor: 'white',
+      }} source={require('../../../assets/no_results/no_results_5.jpg')}/>*/}
+      <HugeiconsIcon icon={UserMultipleIcon} size={100} color='white'/>
+      <Text style={{
+        fontSize: 25,
+        color: 'white',
+        fontWeight: 'bold',
+      }}>No request found!</Text>
+      <Text style={{
+        //fontSize: 13,
+        color: 'darkgray',
+      }}>{requestMode == 1? 'Your requests will appear here.' : requestMode == 2? 'Accepted requests will appear here.' : requestMode == 3? 'Sent requests will appear here.' : null}</Text>
     </View>
   )
 }

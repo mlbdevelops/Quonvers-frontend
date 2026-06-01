@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Modal, Text, StyleSheet, TouchableWithoutFeedback, View, TouchableOpacity } from 'react-native';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Image02Icon, MicIcon, SearchIcon, UserCircleIcon, AddCircleIcon, AddIcon, Unlink04Icon, CameraIcon, ViewIcon, SmileIcon, LinkForwardIcon, NotificationIcon, TimelineListIcon, PinIcon, Clock05Icon, Delete02Icon, LockIcon, Calendar02Icon, SaveIcon } from '@hugeicons/core-free-icons';
@@ -7,7 +7,7 @@ import { useCustomAlert } from '@/hooks/alert'
 import { router } from 'expo-router'
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated'
 import Switch from '@/components/reusables/switch'
-
+import Sheet from '@/components/reusables/bottomSheet'
 export type OptionsProps = {
   label? : string,
   sub_label : string | null,
@@ -18,18 +18,16 @@ export type OptionsProps = {
 
 const SheetComp = ({onClose}) => {
   const alert = useCustomAlert()
-  
+  const bottomRef = React.useRef(null)
   const defaultBottom = useSharedValue(200)
   
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: defaultBottom.value }]
-  }))
-  
-  useEffect(() => {
-    defaultBottom.value = withTiming(0, {
-      duration: 200
-    })
-  }, [])
+  const openSheet = useCallback(() => {
+    bottomRef.current?.snapToIndex(0);
+  }, []);
+
+  const closeSheet = useCallback(() => {
+    bottomRef.current?.close();
+  }, []);
   
   const options = [
     {
@@ -133,80 +131,44 @@ const SheetComp = ({onClose}) => {
   ]
   
   return (
-    <Modal animationType='fade' transparent onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose} style={{
-        flex: 1,
-      }}>
-        <View style={{
-          flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.7)',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-        }}>
-          <Animated.View style={[{
-            width: '100%',
-            borderTopLeftRadius: 25,
-            borderTopRightRadius: 25,
-            //height: '95%',
-            backgroundColor: '#111111',
-            minHeight: 50,
-            paddingVertical: 15,
-          },
-            animatedStyle
-          ]}>
+    <Sheet ref={bottomRef}>
+      {options.map(({label, sub_label, action, icon: Icon, danger}, i) => (
+        <TouchableOpacity onPress={action} underlayColor='red' style={{
+          padding: 12.5,
+          paddingHorizontal: 20,
+          //paddingRight: 10,
+          width: '100%',
+        }} key={i}>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
             <View style={{
-              width: '100%',
+              gap: 15,
+              flexDirection: 'row',
               alignItems: 'center',
-              justifyContent: 'center',
-              marginVertical: 5,
             }}>
-              <View style={{
-                width: 50,
-                height: 5,
-                borderRadius: 50,
-                backgroundColor: '#4e4e4e',
-              }}></View>
+              {Icon}
+              <Text style={{
+                color: danger? 'tomato' : 'white',
+                fontSize: 15,
+              }}>{label}</Text>
             </View>
-            {options.map(({label, sub_label, action, icon: Icon, danger}, i) => (
-              <TouchableOpacity onPress={action} underlayColor='red' style={{
-                padding: 12.5,
-                paddingHorizontal: 20,
-                //paddingRight: 10,
-                width: '100%',
-              }} key={i}>
-                <View style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                  <View style={{
-                    gap: 15,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                  }}>
-                    {Icon}
-                    <Text style={{
-                      color: danger? 'tomato' : 'white',
-                      fontSize: 15,
-                    }}>{label}</Text>
-                  </View>
-                  <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 10
-                  }}>
-                    <Text style={{
-                      color: 'darkgrey',
-                    }}>{sub_label}</Text>
-                    <Switch enabled={i == 5 || i == 2}/>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </Animated.View>
-        </View>
-      </TouchableWithoutFeedback>
-    </Modal>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10
+            }}>
+              <Text style={{
+                color: 'darkgrey',
+              }}>{sub_label}</Text>
+              <Switch enabled={i == 5 || i == 2}/>
+            </View>
+          </View>
+        </TouchableOpacity>
+      ))}
+    </Sheet>
   );
 };
 

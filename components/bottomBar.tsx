@@ -2,10 +2,11 @@ import { View, Platform, Text } from 'react-native';
 import { useLinkBuilder, useTheme } from '@react-navigation/native';
 import { PlatformPressable } from '@react-navigation/elements';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { BubbleChatIcon, SearchIcon, FavouriteIcon, Notification01Icon, Home03Icon, Chat01Icon, UserIcon, UserStoryIcon, Calendar02Icon, Clock05Icon, GridViewIcon, MailIcon, CarouselHorizontal02Icon, FireIcon, UserMultipleIcon } from '@hugeicons/core-free-icons';
+import { BubbleChatIcon, SearchIcon, FavouriteIcon, Notification01Icon, Home03Icon, Chat01Icon, UserIcon, UserStoryIcon, Calendar02Icon, Clock05Icon, GridViewIcon, MailIcon, CarouselHorizontal02Icon, FireIcon, UserMultipleIcon, BubblesIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import haptics from '@/hooks/haptics'
+import { Bubbles } from 'lucide-react-native'
 
 export default function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { colors } = useTheme();
@@ -17,14 +18,17 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
     index: ((props: any) => (
       <HugeiconsIcon icon={Chat01Icon} strokeWidth={1.8} {...props} />
     )),
-    status: ((props: any) => (
-      <HugeiconsIcon icon={GridViewIcon} strokeWidth={1.8} {...props} />
-    )),
     requests: ((props: any) => (
       <HugeiconsIcon icon={UserMultipleIcon} strokeWidth={1.8} {...props} />
     )),
     feed: ((props: any) => (
       <HugeiconsIcon icon={FireIcon} strokeWidth={1.8} {...props} />
+    )),
+    bubbles: ((props: any) => (
+      <Bubbles strokeWidth={1.8} {...props} />
+    )),
+    testtab: ((props: any) => (
+      <Bubbles strokeWidth={1.8} {...props} />
     )),
   }
   
@@ -32,14 +36,17 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
     index: ((props: TextProps) => (
       <Text {...props}>Chats</Text>
     )),
-    status: ((props: TextProps) => (
-      <Text {...props}>Status</Text>
-    )),
     requests: ((props: TextProps) => (
       <Text {...props}>Requests</Text>
     )),
     feed: ((props: TextProps) => (
       <Text {...props}>Moments</Text>
+    )),
+    bubbles: ((props: TextProps) => (
+      <Text {...props}>Bubbles</Text>
+    )),
+    testtab: ((props: TextProps) => (
+      <Text {...props}>tt</Text>
     )),
   }
   

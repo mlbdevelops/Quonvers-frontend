@@ -11,7 +11,10 @@ const Button = ({
   style,
   onPress,
   hideOnKeyboardShown,
-  viber
+  viber,
+  icon,
+  iconPosition = 'left',
+  titleStyle
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { isKeyboardOpen } = useKeyboard()
@@ -56,11 +59,13 @@ const Button = ({
         ...style,
       }}
     >
-      {!isLoading && <Text style={{ color: style?.color || 'white' }}>{title}</Text>}
+      {icon && iconPosition == 'left' && icon}
+      {!isLoading && (title && <Text style={{ color: style?.color || 'white', ...titleStyle }}>{title}</Text>)}
       {isLoading && <ActivityIndicator size="small" color="white" />}
       {isLoading && loading_msg && (
         <Text style={{ color: 'white' }}>{loading_msg}</Text>
       )}
+      {icon && iconPosition == 'right' && icon}
     </TouchableOpacity>
   );
 };

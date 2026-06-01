@@ -31,6 +31,7 @@ import { UseMediaPicker } from '@/hooks/useMediaPicker'
 import { FlashList } from '@shopify/flash-list'
 import AppEvent, { Events } from '@/utils/eventEmitter';
 import { MessageStatus } from '@/utils/MessageServices'
+import Info from '@/components/chat/info'
 
 const Chat = () => {
   const context = useContext(ChatContext)
@@ -48,7 +49,6 @@ const Chat = () => {
   const [messages, setMessages] = useState<any[]>(context.messages || [])
   const flatListRef = useRef(null);
   const [messageOptions, setMessageOptions] = useState<boolean>(false)
-  const [quickReaction, setQuickReaction] = useState<string | null>('💩')
   const [pickMedia, setPickMedia] = useState<boolean>(false)
   
   const walls = [
@@ -87,7 +87,6 @@ const Chat = () => {
         const messages = await getMessages({chat_id})
         if(messages.length){
           setMessages(messages)
-          console.log('LOGGED FROM CHAT PAGE =>> ', messages[0]);
         }
       }
       setIsReady(true)
@@ -95,8 +94,9 @@ const Chat = () => {
   }, [])
   
   useEffect(() => {
-    socket.on('message:receive', (msg) => {
+    AppEvent.on(Events.MSG_SEND, (msg) => {
       if(msg.chat_id !== chat_id) return
+      if(msg.sender_id === logged_user) return
       setMessages((prev) => [msg, ...prev])
       socket.emit('message:seen', { msg_id: msg.id, at: Date.now(), toUser: recipient_id, status: 'Seen' })
     })
@@ -104,10 +104,7 @@ const Chat = () => {
     /*socket.on('message:status', async (data) => {
       await MessageStatus(data.msg_id, data.status, data.at)
     })*/
-    
-    //return () => socket.off('message:receive')
   }, [])
-  
   
   const clearMsgs = () => setMessages([])
   
@@ -147,6 +144,7 @@ const Chat = () => {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: '#0a0a0a',
       }}>
         <ActivityIndicator color='#6a69fe'/>
       </View>
@@ -311,6 +309,7 @@ const Chat = () => {
       {/*<Text className='text-white'>Chat</Text>*/}
       <FlatList 
         data={messages}
+        //ListFooterComponent={<Info id={recipient_id}/>}
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
         inverted
@@ -333,101 +332,6 @@ const Chat = () => {
           />
         )}
       />
-        {/*<View style={{
-          height: 20,
-          width: 20,
-          backgroundColor: 'white',
-        }}></View>*/}
-      
-      {/*<View style={{
-        width: '100%',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        //placeItems: 'end',
-        marginTop: 5,
-        marginBottom: insets.bottom? (insets.bottom + 10) : 5 || 5,
-        gap: 6,
-      }}>
-        <View style={{
-          width: '83%',
-          borderRadius: 25,
-          minHeight: 45,
-          backgroundColor: '#1d1d1d',
-          paddingHorizontal: 10,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 3
-        }}>
-          <TouchableOpacity onPress={ async () => {
-            await handleViber.Strong()
-            setMessageOptions(true)
-          }}>
-            <HugeiconsIcon icon={AddCircleIcon} color='white'/>
-          </TouchableOpacity>
-          <TextInput 
-            cursorColor='#6a69fe' 
-            maxHeight={100} 
-            value={input} 
-            onChangeText={(val) => setinput(val)} 
-            placeholderTextColor='darkgray' 
-            multiline
-            selectionColor="#6a69fe"
-            placeholder='Type a message...' 
-            style={{
-              flex: 1,
-              color: 'white',
-            }}
-          />
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 15
-          }}>
-            <HugeiconsIcon 
-              icon={SmileIcon} 
-              color='white'
-              style={{
-                marginRight: 30,
-              }}
-            />
-            {!input && <HugeiconsIcon icon={CameraIcon} color='white'/>}
-            {!input && <HugeiconsIcon icon={Mic02Icon} color='white'/>}
-          </View>
-        </View>
-        <Pressable onPress={async() => {
-          input && await handleViber.Light()
-          input && setinput('')
-          input && sendMessage()
-          !input && quickReaction && sendMessage({input : quickReaction})
-        }} style={{
-          height: 45,
-          width: 45,
-          backgroundColor: input? '#6a69fe' : '#1d1d1de2',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 50,
-          transition: '0.3s',
-          paddingTop: input? 2.5 : undefined,
-          paddingRight: input? 2.5 : undefined,
-        }}>
-          {input? 
-            <HugeiconsIcon 
-              icon={SentIcon} 
-              fill={input? 'white' : 'transparent'}
-              color={input? '#6a69fe' : 'white'}
-              size={input? 27 : 23}
-            /> :
-            <Text style={{
-              fontSize: 22,
-            }}>{quickReaction}</Text>
-          }
-        </Pressable>
-      </View>*/}
-      
-      
-      
       <View style={{
         width: '100%',
         flexDirection: 'row',
@@ -465,8 +369,6 @@ const Chat = () => {
           //borderWidth: 1,
           borderColor: '#171717'
         }}>
-          
-          
           
           <View style={{
             flexDirection: 'row',
@@ -516,11 +418,6 @@ const Chat = () => {
                 color='white'
               />
             </TouchableOpacity>
-            
-            {/*
-              Smile icon was here...
-            */}
-            
           </View>
           <View style={{
             flexDirection: 'row',
@@ -571,7 +468,6 @@ const Chat = () => {
             </TouchableOpacity>
           </View>
           
-          
           <TouchableOpacity
             style={{
               height: 40,
@@ -599,42 +495,7 @@ const Chat = () => {
               /> 
             }
           </TouchableOpacity>
-          
-          
         </View>
-        
-        {/*<Animated.View style={[{
-          height: 40,
-          width: 40,
-          alignItems: 'center',
-          justifyContent: 'center',
-          //backgroundColor:'red',
-          //marginBottom: 3,
-          display: 'none'
-        }, senderButtonStyle]}>
-          <Pressable onPress={async() => {
-            input && await handleViber.Light()
-            input && setinput('')
-            input && sendMessage()
-            !input && quickReaction && sendMessage({input : quickReaction})
-          }} style={{
-            height: 40,
-            width: 40,
-            backgroundColor: '#6a69fe',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 50,
-            paddingTop: input? 2.5 : undefined,
-            paddingRight: input? 2.5 : undefined,
-          }}>
-            <HugeiconsIcon 
-              icon={SentIcon} 
-              fill='white'
-              color='#6a69fe'
-              size={25}
-            />
-          </Pressable>
-        </Animated.View>*/}
       </View>
       
       <Animated.View 

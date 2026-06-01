@@ -93,6 +93,7 @@ const checkCode = () => {
           placeholder='eg. alex.olsen'
           value={username}
           autoFocus
+          autoCapitalize={'none'}
           cursorColor='#6a69fe'
           selectionColor="#6a69fe"
           onChangeText={(value) => {

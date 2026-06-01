@@ -30,8 +30,8 @@ const Audio = ({visible, onClose, chat}) => {
   return (
     <Modal visible={visible} onRequestClose={onClose} animationType='fade'>
       <ImageBackground containerStyle={{
-        backgroundColor: 'black',
-      }} source={{ uri: avatar || wall}} resizeMode='containe' style={{
+        backgroundColor: 'red',
+      }} source={require('../../../assets/onboarding/1778518071391.jpg')} resizeMode='' style={{
         flex: 1,
       }}>
       <View style={{
