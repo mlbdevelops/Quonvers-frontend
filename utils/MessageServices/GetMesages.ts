@@ -3,11 +3,12 @@ import { getDb } from '../../storage/db.ts';
 export const getMessages = async ({ chat_id, cursor = null, limit = 5000 }: { chat_id: string, cursor?: string | null, limit?: number }) => {
   
   const db = await getDb();
+  const now = Date.now()
 
   const query = `
     SELECT * 
     FROM messages
-    WHERE chat_id = ? 
+    WHERE chat_id = ?
     ${cursor ? 'AND created_at < ?' : ''}
     ORDER BY created_at DESC
     LIMIT ?

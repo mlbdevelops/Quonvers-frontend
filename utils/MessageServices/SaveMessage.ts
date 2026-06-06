@@ -44,7 +44,11 @@ export const localMsgStore = async ({
     const isLogged = user.id === sender_id
     
     const existingMember = await db.getFirstAsync(
-      'SELECT chat_id FROM chat_members WHERE user_id = ?',
+      `SELECT 
+        chat_id
+      FROM 
+        chat_members
+      WHERE user_id = ?`,
       [sender_id]
     );
     
@@ -59,9 +63,11 @@ export const localMsgStore = async ({
       status: sender_id === user.id ? 'Sending' : 'Delivered',
       created_at: finalCreatedAt,
       updated_at: finalCreatedAt,
-      disappears_at: disappears_at || null,
+      disappears_at: disappears_at && (Date.now() + disappears_at),
       status_at: timestamp
     };
+    
+    console.log(message)
     
     const checkIfAlreadyExist = await db?.getFirstAsync('SELECT id FROM messages WHERE id = ?', [message.id]);
     if (checkIfAlreadyExist) return;
@@ -85,8 +91,6 @@ export const localMsgStore = async ({
         message.status_at
       ]
     );
-    
-    console.log('FROM SAVE  => ', message.chat_id)
     
     if (message.sender_id === user.id) {
       await db?.runAsync(

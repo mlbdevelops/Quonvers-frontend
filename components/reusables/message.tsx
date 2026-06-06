@@ -35,8 +35,8 @@ const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, i
       style={{
         ...item.sender_id == logged_user? styles.msgRight : styles.msgLeft, 
         marginBottom: isLast? 10 : shouldShow? 10 : 0,
-        backgroundColor: !hasAnyAlphabet()? (hasAnyAlphabet() && item?.content?.split("").length >= 2? 'transparent' : '#202020c6') : undefined,
-        borderRadius: !hasAnyAlphabet()? 25 : undefined,
+        //backgroundColor: !hasAnyAlphabet()? (hasAnyAlphabet() && item?.content?.split("").length >= 2? 'transparent' : '#202020c6') : undefined,
+        //borderRadius: !hasAnyAlphabet()? 25 : undefined,
       }}
     >
       {item.sender_id !== logged_user && <Image src={room_icon} style={{
@@ -48,14 +48,14 @@ const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, i
       }}/>}
       <View style={{
         ...item.sender_id === logged_user? styles.msgRight.msgTextRight : styles.msgLeft.msgTextLeft,
-        ...!hasAnyAlphabet() && styles.condStyle
       }}>
         <Text style={{
           color: 'white',
-          fontSize: hasAnyAlphabet()? 14 : (50 - (item.content.length * 4)),
+          //fontSize: hasAnyAlphabet()? 14.5 : (50 - (item.content.length * 4)),
           padding: hasAnyAlphabet()? 0 : undefined,
           borderWidth: 0,
           borderColor: 'white',
+          fontSize: 15,
         }}>{item.content}</Text>
       </View>
       <Text style={{
@@ -82,7 +82,6 @@ const styles = StyleSheet.create({
     textAlign: 'start',
     marginHorizontal: 8,
     marginVertical: 5,
-    fontSize: 14.5,
     wordBreak: 'break-word',
     alignItems: 'flex-end',
     display: 'flex',
@@ -93,8 +92,8 @@ const styles = StyleSheet.create({
       backgroundColor: '#262626',
       borderRadius: 20,
       //borderBottomLeftRadius: 5,
-      paddingVertical: 8,
-      paddingHorizontal: 12,
+      paddingVertical: 9,
+      paddingHorizontal: 14,
       whiteSpace: 'pre-line',
     }
   },
@@ -108,12 +107,11 @@ const styles = StyleSheet.create({
     marginVertical: 5,
     marginBottom: 8,
     wordBreak: 'line-break',
-    fontSize: 14.5,
-   
+    
     msgTextRight : {
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      backgroundColor: '#6a69fe',
+      paddingVertical: 9,
+      paddingHorizontal: 14,
+      backgroundColor: '#5E4BFA' || '#6a69fe',
       //borderBottomRightRadius: 5,
       borderRadius: 20,
       textAlign: 'start',

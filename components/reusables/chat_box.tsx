@@ -1,11 +1,13 @@
 import Image from './Image';
-import { View, Text, TouchableHighlight, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
 import { useState, useEffect } from 'react'
 import AppEvent, { Events } from '@/utils/eventEmitter'
 import DateFormat from '@/utils/day'
 import { storage } from '@/storage/mmkv'
 import { socket } from '@/hooks/sockets/socket_provider';
+import { HugeiconsIcon } from '@hugeicons/react-native';
+import { TimeHalfPassIcon } from '@hugeicons/core-free-icons';
 
 export default function ChatBox({chat}) {
   const [unread_count, setUnreadCount] = useState(chat.unread_count || 0)
@@ -14,8 +16,11 @@ export default function ChatBox({chat}) {
   const [timestamp, setTimeStamp] = useState(chat.last_message_at)
   const [sender_id, setSender_id] = useState(chat.last_message_sender_id)
   const { user } = JSON.parse(storage.getString('user'))
+  const [vanish_enabled, setVanish_enabled] = useState(chat.msg_vanish_millis || 0)
+  const [name, setName] = useState(chat.recipient_nickname || chat.recipient_name)
   
   useEffect(() => {
+    console.log(chat.msg_vanish_millis)
     AppEvent.on(Events.MSG_SEND, (data) => {
       if (data.chat_id !== chat.id) return
       setContent(data?.content),
@@ -23,11 +28,18 @@ export default function ChatBox({chat}) {
       setTimeStamp(data?.created_at)
       if(data.sender_id !== user.id) return setUnreadCount((prev) => typeof prev == 'number' && prev + 1)
     })
+    AppEvent.on(Events.NICKNAME_CHANGE, (e) => {
+      if(e.chat_id === chat.id) setName(e.newName)
+    })
+    AppEvent.on(Events.MSG_VANISH, (e) => {
+      if(e.chat_id !== chat.id) return
+      setVanish_enabled(e.duration)
+    })
   }, [])
   
   return(
-    <TouchableHighlight
-      underlayColor='#1d1d1d6c'
+    <TouchableOpacity
+      activeOpacity={.5}
       onPress={() => {
         has_unread = false
         setUnreadCount(0)
@@ -36,9 +48,10 @@ export default function ChatBox({chat}) {
           params: {
             chat_id: chat?.id,
             chat_type: chat?.type,
-            avatar: chat.chat_avatar,
-            name: chat.recipient_name,
-            recipient_id: chat.recipient_id
+            avatar: chat?.chat_avatar,
+            name,
+            recipient_id: chat?.recipient_id,
+            msg_vanish_millis: vanish_enabled
           }
         })
       }
@@ -50,6 +63,7 @@ export default function ChatBox({chat}) {
           style={{
             width: 50,
             height: 50,
+            borderRadius: 15,
           }}
         />
         
@@ -60,7 +74,7 @@ export default function ChatBox({chat}) {
               fontWeight: 'bold',
             }}
           >
-            {chat.recipient_name}
+            {name}
           </Text>
           <Text numberOfLines={1}
             style={{
@@ -80,17 +94,25 @@ export default function ChatBox({chat}) {
             color: !has_unread? 'darkgray' : 'white',
             fontSize: 12,
             marginBottom: 4,
-          }}>{DateFormat(timestamp * 1000)}</Text>
+          }}>{DateFormat(timestamp * 1000, true)}</Text>
           <View style={{
-            ...styles.badge,
-            opacity: has_unread? 1 : 0,
-            width: unread_count >= 9? 28 : 20,
-          }}><Text style={{
-            color: 'white',
-          }}>{unread_count}</Text></View>
+            flexDirection: 'row',
+            gap: 8,
+            alignItems: 'center',
+            height: 20,
+          }}>
+            {vanish_enabled? <HugeiconsIcon icon={TimeHalfPassIcon} color='darkgray' size={15} strokeWidth={2}/> : null}
+            <View style={{
+              ...styles.badge,
+              display: has_unread? undefined : 'none',
+              width: unread_count >= 9? 28 : 20,
+            }}><Text style={{
+              color: 'white',
+            }}>{unread_count}</Text></View>
+          </View>
         </View>
       </View>
-    </TouchableHighlight>
+    </TouchableOpacity>
   )
 }
 

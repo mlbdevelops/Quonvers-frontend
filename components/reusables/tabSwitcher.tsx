@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import haptics from '@/hooks/haptics'
 
-const TabSwitcher = ({show = true, options = [], index = 0, onChange, style, itemStyle, disabledIndex = null}: {show: boolean, options: any[], index: number, onChange: () => void, style: any, itemStyle: any, disabledIndex: number | null}) => {
+const TabSwitcher = ({show = true, options = [], index = 0, onChange, style, itemStyle, disabledIndex = null, activeBg, labelStyle, activeLabel, inactiveLabel = 'white', inactiveBg}: {show: boolean, options: any[], index: number, onChange: () => void, style: any, itemStyle: any, disabledIndex: number | null, activeBg: string | null, labelStyle: any | null, activeLabel: string, inactiveLabel: string, inactiveBg: any}) => {
   const [currentIndex, setCurrentIndex] = useState(index)
   const { handleViber } = haptics()
   
@@ -13,8 +13,8 @@ const TabSwitcher = ({show = true, options = [], index = 0, onChange, style, ite
       width: '100%',
       borderRadius: 15,
       height: 40,
-      backgroundColor: '#1d1d1db9',
-      padding: 4,
+      //backgroundColor: '#1d1d1db9',
+      //padding: 4,
       //borderWidth: 1,
       //borderColor: '#262626',
       justifyContent: 'space-between',
@@ -29,14 +29,17 @@ const TabSwitcher = ({show = true, options = [], index = 0, onChange, style, ite
         }} style={{
           height: '100%',
           flex: 1,
-          borderRadius: 12,
-          backgroundColor: currentIndex == i? '#ffffff28' : 'transparent',
+          //borderRadius: 12,
+          backgroundColor: activeBg && (currentIndex == i? activeBg : inactiveBg) || inactiveBg,
           alignItems: 'center',
+          borderBottomWidth: 2,
+          borderColor: currentIndex == i? '#6a69fe' : 'transparent',
           justifyContent: 'center',
           ...itemStyle
         }}>
           <Text style={{
-            color: 'white',
+            color: activeLabel && (currentIndex == i? activeLabel : inactiveLabel) || inactiveLabel,
+            ...labelStyle
           }}>{o}</Text>
         </TouchableOpacity>
       ))}

@@ -15,6 +15,7 @@ import { useContext, useEffect } from 'react'
 import { initDatabase } from '@/storage/initDb'
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ChatProvider } from '@/contexts/chatContext'
+import VanishExpiredMessages from '@/utils/commands/DeleteExpiredMessages'
 
 export default function ProtectedLayout() {
   const authContext = useContext(AuthContext)
@@ -32,6 +33,11 @@ export default function ProtectedLayout() {
       duration: 0,
     },
   };
+  
+  useEffect(() => {
+    setInterval(() => VanishExpiredMessages(), 60000)
+  }, [])
+  
   
   useEffect(() => {
     initDatabase()

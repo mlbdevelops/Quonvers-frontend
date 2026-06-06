@@ -10,7 +10,7 @@ export const initDatabase = async () => {
   
   return await db.execAsync(`
     ALTER TABLE messages
-    ADD COLUMN status TEXT status_at INTEGER
+    ADD COLUMN disappearing_millisecs INTEGER
   `)
   */
   
@@ -27,6 +27,22 @@ export const initDatabase = async () => {
       is_pro BOOLEAN DEFAULT false
     );
     
+    -- DISAPEARING MESSAGES
+    CREATE TABLE IF NOT EXISTS disappear_setting (
+      chat_id TEXT NOT NULL UNIQUE,
+      disappearing_millisecs INTEGER DEFAULT 0 NOT NULL,
+      ui_index INTEGER DEFAULT 0 NOT NULL,
+      set_by TEXT
+    );
+    
+    --THEME
+    CREATE TABLE IF NOT EXISTS chat_theme (
+      chat_id TEXT PRIMARY KEY,
+      bg_uri TEXT,
+      bg_opacity INTEGER,
+      bubble_color TEXT DEFAULT '#5E4BFA'
+    );
+    
     -- CHATS
     CREATE TABLE IF NOT EXISTS chats (
       id TEXT PRIMARY KEY,
@@ -37,10 +53,9 @@ export const initDatabase = async () => {
       last_message_preview TEXT,
       last_message_at INTEGER,
       last_message_sender_id TEXT,
+      last_message_status TEXT,
       created_at INTEGER,
       status TEXT,
-      theme BLOB,
-      read_receipts BOOLEAN DEFAULT true,
       muted BOOLEAN DEFAULT false,
       disappearing_duration INTEGER,
       pinned_at INTEGER,
@@ -147,6 +162,6 @@ export const initDatabase = async () => {
 
   console.log('Database initialized ✅');
   } catch (error) {
-    console.error(error);
+    console.error('Database error', error);
   }
 };

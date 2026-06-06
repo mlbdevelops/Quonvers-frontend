@@ -22,6 +22,8 @@ import { localMsgStore } from '@/utils/MessageServices/index'
 import { MessageStatus } from '@/utils/MessageServices'
 import { createChat } from "@/utils/MessageServices/CreateChat"
 import PushNotif from '@/utils/notifications'
+import TabSwitcher from '@/components/reusables/tabSwitcher'
+import MessageVanish from '@/utils/commands/MessageVanish'
 
 export default function messagesScreen(){
   const { handleViber } = haptics()
@@ -35,6 +37,8 @@ export default function messagesScreen(){
   const [networkProbs, setNetworkProbs] = useState(false)
   const messageQueue = useRef([]);
   const isProcessing = useRef(false);
+  const commandQueue = useRef([])
+  const isCommandQueueProcessing = useRef(false)
   
   const onRefresh = useCallback( async () => {
     try {
@@ -105,87 +109,33 @@ export default function messagesScreen(){
     return () => socket.off('message:receive', handleMessage);
   }, []);
   
-  /*useEffect(() => {
-  const processQueue = async () => {
-    // 1. Guard against concurrent concurrent execution threads
-    if (isProcessing.current) return;
-    isProcessing.current = true;
-    
-    try {
-      const db = await getDb();
-      
-      // 2. Process items sequentially until the array is empty
-      while (messageQueue.current.length > 0) {
-        const msg = messageQueue.current[0]; // Look at the first item without removing it yet
-        if (!msg) {
-          messageQueue.current.shift();
-          continue;
+  useEffect(() => {
+    const processCommandQueue = async () => {
+      isCommandQueueProcessing.current = true
+      const db = await getDb()
+      try {
+        let c
+        while((c = commandQueue.current.shift())){
+          if(!c.type) continue
+          c.type === 'message_vanish' && await MessageVanish(c)
         }
-        
-        const senderId = msg.sender_id;
-        
-        // Check chat membership
-        const existingMember = await db.getFirstAsync(
-          'SELECT chat_id FROM chat_members WHERE user_id = ?',
-          [senderId]
-        );
-        
-        const finalChatId = existingMember?.chat_id ?? msg?.chat_id;
-        
-        if (!existingMember?.chat_id) {
-          let userData = msg.sender_data;
-          if (!userData) {
-            const response = await trans(`/api/_/get_user?user_id=${senderId}`, {
-              useToken: true, 
-              method: 'GET',
-            });
-            userData = response.data;
-          }
-          await createChat({ ...userData, msg_id: msg.id }, finalChatId, 'pending');
+      } catch (error) {
+        console.error(error);
+      }finally{
+        isCommandQueueProcessing.current = false;
+        if (commandQueue.current.length > 0) {
+          processCommandQueue();
         }
-        
-        // Pass a dynamic status if the message isn't from the local user
-        await localMsgStore({ 
-          chat_id: finalChatId,
-          sender_id: senderId,
-          ...msg,
-          // Overwrite status if your localMsgStore supports dynamic status passing
-        });
-        
-        socket.emit('message:delivered', {
-          msg_id: msg.id, 
-          toUser: senderId, 
-          at: Date.now(), 
-          status: 'Delivered',
-        });
-
-        // 3. ONLY shift it off the queue after it successfully saves completely
-        messageQueue.current.shift();
-      }
-    } catch (error) {
-      console.error("Queue Processing Error:", error);
-      // If an individual message fails, remove it so it doesn't block the whole queue forever
-      messageQueue.current.shift(); 
-    } finally {
-      // 4. Release the lock completely when the loop is done
-      isProcessing.current = false;
-      
-      // 5. Catch any messages that snuck into the queue while we were wrapping up
-      if (messageQueue.current.length > 0) {
-        processQueue();
       }
     }
-  };
-  
-  const handleMessage = (msg) => {
-    messageQueue.current.push(msg);
-    processQueue();
-  };
-  
-  socket.on('message:receive', handleMessage);
-  return () => socket.off('message:receive', handleMessage);
-}, []);*/
-
+    
+    const handleCommands = (c) => {
+      commandQueue.current.push(c)
+      if(!isCommandQueueProcessing.current) processCommandQueue()
+    }
+    
+    socket.on('command:receive', handleCommands)
+  }, [])
   
   useEffect(() => {
     const handleStatus = async (data) => {
@@ -196,7 +146,6 @@ export default function messagesScreen(){
       }
     };
     socket.on('message:status', handleStatus);
-    //return () => socket.off('message:status', handleStatus);
   }, []);
   
   const getChatsFromDb = async () => {
@@ -220,11 +169,13 @@ export default function messagesScreen(){
         c.read_receipts,  
         c.pinned_at,  
         c.archived,
-        mc.unread_count
+        mc.unread_count,
+        dm.disappearing_millisecs AS msg_vanish_millis
       FROM chats c  
       JOIN chat_members r ON r.chat_id = c.id  
       JOIN chat_members mc ON mc.chat_id = c.id  
       JOIN users u ON u.user_id = r.user_id  
+      LEFT JOIN disappear_setting dm ON dm.chat_id = c.id  
       WHERE  
         r.user_id != ?
         AND mc.user_id = ?
@@ -362,7 +313,25 @@ export default function messagesScreen(){
             fontWeight: '400',
           }}>Search...</Text>
         </TouchableOpacity>
-        
+        <TabSwitcher 
+          activeBg={'#6a69fe'}
+          inactiveBg={'#1d1d1d'}
+          itemStyle={{
+            borderRadius: 100,
+            height: '75%',
+            flex: null,
+            paddingHorizontal: 12,
+            borderBottomWidth: 0
+          }}
+          style={{
+            justifyContent: null,
+            marginHorizontal: 15,
+            width: '92%',
+            marginTop: 10,
+            gap: 15
+          }}
+          options={['Messages', 'Unread', 'Favorite']}
+        />
         <View
           style={{
             flex: 1,
@@ -370,7 +339,7 @@ export default function messagesScreen(){
             paddingLeft: 3,
             paddingRight: 3,
             width: '100%',
-            marginTop: 5,
+            //marginTop: 5,
             marginBottom: chats.length && 50,
           }}
         >

@@ -16,10 +16,12 @@ export const UseMediaPicker = ({onClose}) => {
   const [batchLoading, setBatchLoading] = useState<boolean>(false)
   const safeInsets = useSafeAreaInsets()
   const [media, setMedia] = useState<any[]>([])
-  const [batchSize, setBatchSize] = useState(30)
+  const [batchSize, setBatchSize] = useState(200)
   const [after, setAfter] = useState<string | null>(null)
   const [hasNextPage, setHasNextPage] = useState(true)
   const [ready, setReady] = useState(false)
+  const [mediaType, setMediaType] = useState('photo')
+  const spacing = 5
   
   const getMedia = async () => {
     try {
@@ -27,10 +29,10 @@ export const UseMediaPicker = ({onClose}) => {
         setBatchLoading(false)
       }
       const result = await MediaLibrary.getAssetsAsync({
-        mediaType: ["photo", "video"],
+        mediaType: [mediaType],
         first: batchSize,
         after,
-        sortBy: [["creationTime", true]],
+        sortBy: [["creationTime", false]],
       });
       
       setAfter(result.endCursor);
@@ -92,9 +94,9 @@ export const UseMediaPicker = ({onClose}) => {
           }}>Select a media</Text>
         </View>
         <TabSwitcher style={{
-          marginHorizontal: 10,
-          width: '95%',
-          marginBottom: 10,
+          alignSelf: 'center',
+          //width: '95%',
+          //marginBottom: 10,
         }} options={['Photos', 'Videos']}/>
         <View style={{
           flex: 1,
@@ -119,10 +121,10 @@ export const UseMediaPicker = ({onClose}) => {
           keyExtractor={(item) => item.id}
           renderItem={({item, index: i}) => (
             <View style={{
-              height: width / 3.1,
+              height: width / 2,
               width: width / 3.1,
-              marginHorizontal: 3,
-              marginBottom: 4,
+              marginHorizontal: 2,
+              marginBottom: 3,
             }}>
               {item.mediaType == 'photo'? <Image source={{uri: item.uri}} style={{
                 flex: 1,

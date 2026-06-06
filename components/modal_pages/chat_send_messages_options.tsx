@@ -26,28 +26,28 @@ const MessagesOptions = ({onClose}) => {
   const options = [
     {
       label: 'Media',
-      icon: <HugeiconsIcon color='white'  icon={Image02Icon}/>,
+      icon: <HugeiconsIcon color='white' size={20}  icon={Image02Icon}/>,
       onPress: () => onClose('media_pick')
     },
     {
       label: 'Camera',
-      icon: <HugeiconsIcon color='white'  icon={CameraIcon}/>
+      icon: <HugeiconsIcon color='white' size={20} icon={CameraIcon}/>
     },
     {
       label: 'GIFs & Stickers',
-      icon: <HugeiconsIcon color='white'  icon={SmileIcon}/>
+      icon: <HugeiconsIcon color='white' size={20}  icon={SmileIcon}/>
     },
     {
       label: 'Attachment',
-      icon: <HugeiconsIcon color='white'  icon={LinkIcon}/>
+      icon: <HugeiconsIcon color='white' size={20}  icon={LinkIcon}/>
     },
     {
       label: 'Contact',
-      icon: <HugeiconsIcon color='white'  icon={UserIcon}/>
+      icon: <HugeiconsIcon color='white' size={20}  icon={UserIcon}/>
     },
     {
       label: 'Location',
-      icon: <HugeiconsIcon color='white'  icon={LocationIcon}/>
+      icon: <HugeiconsIcon color='white' size={20}  icon={LocationIcon}/>
     },
   ]
   
@@ -66,18 +66,45 @@ const MessagesOptions = ({onClose}) => {
         }}>
           <Animated.View style={[styles.container, animatedStyle]}>
             {options.map(({label, icon, onPress}, i) => (
-              <TouchableOpacity onPress={onPress || null} underlayColor={'#262626'} key={i} style={{
-                flexDirection: 'row',
-                width: 145,
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
-                <Text style={{
-                  color: 'white',
-                  fontSize: 16,
-                }}>{label}</Text>
-                {icon}
-              </TouchableOpacity>
+              <TouchableHighlight
+                key={i}
+                underlayColor='black'
+                onPress={onPress || onClose}
+                style={{
+                  width: '100%',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  //justifyContent: 'space-between',
+                  paddingHorizontal: 4,
+                  height: 45.5,
+                  borderRadius: 100,
+                  //backgroundColor: 'pink',
+                }}
+              >
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                }}>
+                  <View style={{
+                    height: 37,
+                    width: 37,
+                    borderRadius: 100,
+                    backgroundColor : '#1d1d1d',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 0,
+                  }}>
+                    {icon}
+                  </View>
+                  <Text style={{
+                    fontSize: 16,
+                    color: 'white'
+                  }}>
+                    {label}
+                  </Text>
+                </View>
+              </TouchableHighlight>
             ))}
           </Animated.View>
         </View>
@@ -88,15 +115,14 @@ const MessagesOptions = ({onClose}) => {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 20,
-    overflow: 'hidden',
+    borderRadius: 30,
     backgroundColor: '#161616',
     position: 'absolute',
     bottom: 60,
     left: 5,
-    padding: 18,
-    paddingHorizontal: 20,
-    gap: 25
+    padding: 10,
+    minWidth: 200,
+    //gap: 25
   },
 });
 

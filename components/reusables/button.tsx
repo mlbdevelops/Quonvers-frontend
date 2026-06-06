@@ -14,7 +14,8 @@ const Button = ({
   viber,
   icon,
   iconPosition = 'left',
-  titleStyle
+  titleStyle,
+  bold = true
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { isKeyboardOpen } = useKeyboard()
@@ -37,7 +38,7 @@ const Button = ({
   const handlePress = () => {
     if (isLoading) return;
     viber && handleViber.Strong()
-    onPress?.();
+    typeof onPress == 'function' && onPress?.();
   };
 
   return (
@@ -60,7 +61,11 @@ const Button = ({
       }}
     >
       {icon && iconPosition == 'left' && icon}
-      {!isLoading && (title && <Text style={{ color: style?.color || 'white', ...titleStyle }}>{title}</Text>)}
+      {!isLoading && (title && <Text style={{ 
+        color: style?.color || 'white',
+        fontWeight: bold? 'bold' : 'normal',
+        ...titleStyle,
+      }}>{title}</Text>)}
       {isLoading && <ActivityIndicator size="small" color="white" />}
       {isLoading && loading_msg && (
         <Text style={{ color: 'white' }}>{loading_msg}</Text>

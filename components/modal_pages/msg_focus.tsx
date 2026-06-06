@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableWithoutFeedback, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableWithoutFeedback, TouchableOpacity, TouchableHighlight } from 'react-native';
 import { Plus, Forward, Share, Copy, AlertTriangle, Trash2, Pen, MessageCircleReply, Type } from 'lucide-react-native';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { AddIcon, CopyIcon, EditIcon, LinkForwardIcon, Delete02Icon, PenIcon, AlertIcon, LinkBackwardIcon, PinIcon, InformationCircleIcon } from '@hugeicons/core-free-icons';
@@ -31,60 +31,58 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
     '😂',
     '😭',
     '👎',
+    '☠️'
   ]
   
   const options = [
     {
       label: 'Reply',
-      icon: <HugeiconsIcon icon={LinkBackwardIcon} color={'white'} size={22}   />,
+      icon: <HugeiconsIcon icon={LinkBackwardIcon} color={'white'} size={20}   />,
       type: 'lucide'
     },
     {
       label: 'Edit',
-      icon: <HugeiconsIcon icon={PenIcon} color={'white'} size={22}   />,
+      icon: <HugeiconsIcon icon={PenIcon} color={'white'} size={20}   />,
       display: msg.sender_id === user || false,
       type: 'huge'
     },
     {
       label: 'Copy',
-      icon: <HugeiconsIcon icon={CopyIcon} color={'white'} size={22}   />,
+      icon: <HugeiconsIcon icon={CopyIcon} color={'white'} size={20}   />,
       type: 'huge'
     },
     {
       label: 'Forward',
-      icon: <HugeiconsIcon icon={LinkForwardIcon} color={'white'} size={22}   />,
+      icon: <HugeiconsIcon icon={LinkForwardIcon} color={'white'} size={20}   />,
       type: 'huge'
     },
     {
       label: 'Pin',
-      icon: <HugeiconsIcon icon={PinIcon} color={'white'} size={22}   />,
+      icon: <HugeiconsIcon icon={PinIcon} color={'white'} size={20}   />,
       type: 'huge'
     },
     {
       label: 'Delete',
-      icon: <HugeiconsIcon icon={Delete02Icon} color={'tomato'}/>,
+      icon: <HugeiconsIcon icon={Delete02Icon} color={'tomato'} size={20}/>,
       display: msg.sender_id === user || false,
       danger: true,
       action: () => actionTaken('delete'),
       type: 'huge'
     },
-  ]
-  
-  const bottomLineOptions = [
-    {
+    /*{
       label: 'Info',
-      icon: <HugeiconsIcon icon={InformationCircleIcon} color={'white'} size={22}   />,
+      icon: <HugeiconsIcon icon={InformationCircleIcon} color={'white'} size={20}   />,
       type: 'huge'
     },
     {
       label: 'Report',
-      icon: <HugeiconsIcon icon={AlertIcon} color={'white'} size={22}   />,
+      icon: <HugeiconsIcon icon={AlertIcon} color={'white'} size={20}   />,
       type: 'lucide'
-    },
+    },*/
   ]
   
   const reactionDiv = {
-    width: '90%',
+    width: '95%',
     height: 50,
     borderRadius: 9999,
     backgroundColor: '#161616',
@@ -94,22 +92,22 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
     gap: 8,
     marginHorizontal: 16,
     justifyContent: 'space-evenly',
-    alignSelf: msg.sender_id === user? 'flex-end' : 'flex-start',
   }
   
   const actionsDiv = {
-    width: '52%',
+    width: 190,
     //maxWidth: 200,
     backgroundColor: '#151515',
     flexDirection: 'column',
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 30,
     justifyContent: 'center',
-    paddingVertical: 10,
-    paddingBottom: 0,
-    marginHorizontal: 16,
+    //paddingVertical: 15,
+    marginHorizontal: 15,
     overflow: 'hidden',
     //height: 100,
+    padding: 10,
+    marginBottom: 15,
     alignSelf: msg.sender_id === user? 'flex-end' : 'flex-start',
   }
   
@@ -119,8 +117,9 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
         <View style={{
           flex: 1,
           flexDirection: 'column',
-          justifyContent: 'center',
-          backgroundColor: 'rgba(0,0,0,0.7)',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          backgroundColor: 'rgba(0,0,0,0.8)',
         }}>
           <Animated.View
             style={[reactionDiv, animatedStyle]}
@@ -153,71 +152,53 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
             msg.sender_id === user? styles.msgRight : styles.msgLeft,
             animatedStyle
           ]}>
-            <Text className='' style={
-              msg.sender_id === user? styles.msgRight.msgTextRight : styles.msgLeft.msgTextLeft
-            }>{msg.content}</Text>
+            <Text style={{
+              fontSize: 15,
+              ...msg.sender_id === user? styles.msgRight.msgTextRight : styles.msgLeft.msgTextLeft
+            }}>{msg.content}</Text>
           </Animated.View>
-          <Animated.View style={[actionsDiv, animatedStyle]} onPress={(e) => e?.stopPropagation()}>
+          <Animated.View style={[actionsDiv, animatedStyle]}>
           {options.map(({label, icon, danger, type, action}, i) => (
-            <TouchableOpacity
+            <TouchableHighlight
               key={i}
+              underlayColor='black'
               onPress={action || onClose}
               style={{
                 width: '100%',
                 flexDirection: 'row',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingHorizontal: 20,
+                //justifyContent: 'space-between',
+                paddingHorizontal: 4,
                 height: 45.5,
+                borderRadius: 100,
                 //backgroundColor: 'pink',
               }}
             >
-              <Text style={{
-                fontSize: 16,
-                color: danger? 'tomato' : 'white'
-              }}>
-                {label}
-              </Text>
-              {icon}
-            </TouchableOpacity>
-          ))}
-          <View style={{
-            width: '100%',
-            flexDirection: 'row',
-            alignItems: 'center',
-            borderTopWidth: 1,
-            borderColor: '#1d1d1d',
-            height: 40,
-            //backgroundColor: 'white',
-            overflow: 'hidden',
-            //paddingVertical: 7,
-            marginTop: 5
-          }}>
-            {bottomLineOptions.map(({display, label, action, danger, icon}, i) => (
-              <TouchableOpacity key={i} style={{
+              <View style={{
+                flexDirection: 'row',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: 3,
-                //backgroundColor: 'white',
-                //paddingVertical: 7,
-                flex: 1,
-                height: '100%',
-                borderLeftWidth: i == 1? 1 : 0,
-                //borderRightWidth: i == 1? 1 : 0,
-                borderLeftColor: i == 1? '#262626' : null,
-                //borderRightColor: i == 1? '#262626' : null,
-              }} onPress={action || onClose}>
-                {icon}
+                gap: 12,
+              }}>
+                <View style={{
+                  height: 37,
+                  width: 37,
+                  borderRadius: 100,
+                  backgroundColor: danger? '#ff63471d' : '#1d1d1d',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 0,
+                }}>
+                  {icon}
+                </View>
                 <Text style={{
-                  color: danger? 'tomato' : 'white',
-                  fontSize: 12,
-                  display: 'none',
+                  fontSize: 16,
+                  color: danger? 'tomato' : 'white'
                 }}>
                   {label}
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+              </View>
+            </TouchableHighlight>
+          ))}
         </Animated.View>
         </View>
       </TouchableWithoutFeedback>
@@ -244,8 +225,8 @@ const styles = StyleSheet.create({
       backgroundColor: '#262626',
       borderRadius: 20,
       //borderBottomLeftRadius: 5,
-      paddingVertical: 8,
-      paddingHorizontal: 12,
+      paddingVertical: 9,
+      paddingHorizontal: 14,
       whiteSpace: 'pre-line',
       color: 'white',
     }
@@ -269,11 +250,11 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
    
     msgTextRight : {
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      backgroundColor: '#6a69fe',
-      borderRadius: 20,
+      paddingVertical: 9,
+      paddingHorizontal: 14,
+      backgroundColor: '#5E4BFA' || '#6a69fe',
       //borderBottomRightRadius: 5,
+      borderRadius: 20,
       textAlign: 'start',
       whiteSpace: 'pre-line',
       color: 'white',

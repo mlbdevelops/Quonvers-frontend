@@ -6,7 +6,7 @@ import Header from '@/components/header'
 import { ArrowLeft, Phone, PlusCircle, Smile, AudioLines, SendHorizontal, ArrowUp, CheckCheck } from 'lucide-react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { Image02Icon, MicIcon, SettingsIcon, VideoIcon, ImagesIcon, CallAdd02Icon, AudioWave01Icon, Mic02Icon, AddCircleIcon, SmileIcon, SentIcon, Check01Icon, CameraIcon, AddIcon, Unlink04Icon } from '@hugeicons/core-free-icons';
+import { Image02Icon, MicIcon, SettingsIcon, VideoIcon, ImagesIcon, CallAdd02Icon, AudioWave01Icon, Mic02Icon, AddCircleIcon, SmileIcon, SentIcon, Check01Icon, CameraIcon, AddIcon, Unlink04Icon, Clock01Icon, TimeHalfPassIcon } from '@hugeicons/core-free-icons';
 import { useState, useEffect, useRef, useContext } from 'react'
 import haptics from '@/hooks/haptics'
 import trans from '@/hooks/fetch'
@@ -17,7 +17,6 @@ import Message from '@/components/reusables/message'
 import Button from '@/components/reusables/button'
 import MsgFocus from '@/components/modal_pages/msg_focus'
 import MessagesOptions from '@/components/modal_pages/chat_send_messages_options'
-import Audio from '@/components/modal_pages/call/audio'
 import { useAnimatedKeyboard } from "react-native-keyboard-controller";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated'
 import { localMsgStore, deleteMessage, sendMessage } from '@/utils/MessageServices/index'
@@ -44,36 +43,20 @@ const Chat = () => {
   const [selected_msg_for_focus_mode, setSelected_msg_for_focus_mode] = useState<any>(null)
   const [input, setinput] = useState<any>('')
   const [logged_user, setLoggedUser] = useState<string | null>(JSON.parse(storage.getString('user')).user.id)
-  const [audio_call_modal, setAudio_call_modal] = useState<boolean | null>(false)
-  const { chat_id, chat_type, avatar, name, recipient_id, sender_data } = useLocalSearchParams()
+  const { chat_id, chat_type, avatar, name: initialName, recipient_id, sender_data, msg_vanish_millis } = useLocalSearchParams()
+  const [name, setName] = useState(initialName)
   const [messages, setMessages] = useState<any[]>(context.messages || [])
   const flatListRef = useRef(null);
   const [messageOptions, setMessageOptions] = useState<boolean>(false)
+  const [vanish_enabled, setVanish_enabled] = useState(msg_vanish_millis || 0)
   const [pickMedia, setPickMedia] = useState<boolean>(false)
   
   const walls = [
     'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ9JohhdOwVkWIenjINcSm62489tnbGS21EuKSW7nNd8g&s=10',
     'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRJ_wXo5gRE7vn6iAFHcPRbmRsVL9V0U-9ZMXcFolP10Q&s=10',
-    'https://wallpapers.com/images/hd/minimalist-planetary-design-yo4xhchp4govyrdq.jpg'
+    'https://wallpapers.com/images/hd/minimalist-planetary-design-yo4xhchp4govyrdq.jpg',
+    'https://i.pinimg.com/736x/0d/af/27/0daf274684cc3283e426e9e0bee842a9.jpg',
   ]
-  
-  /*const senderSizeValue = useSharedValue(0)
-  const scaleButtonValue = useSharedValue(0)
-  
-  const senderButtonStyle = useAnimatedStyle(() => ({
-    height: senderSizeValue.value,
-    width: senderSizeValue.value,
-    transform: [{ scale: scaleButtonValue.value }],
-  }))
-  
-  useEffect(() => {
-    if (input) {
-      senderSizeValue.value = withTiming(45, { duration: 100 })
-      return scaleButtonValue.value = withTiming(1, { duration: 250 })
-    }
-    senderSizeValue.value = withTiming(0, { duration: 250 })
-    scaleButtonValue.value = withTiming(0, { duration: 250 })
-  }, [input])*/
   
   function isTheLastMessageMine(messages: any, currentMassage: any) {
     const verif = messages[0]
@@ -101,19 +84,25 @@ const Chat = () => {
       socket.emit('message:seen', { msg_id: msg.id, at: Date.now(), toUser: recipient_id, status: 'Seen' })
     })
     
+    AppEvent.on(Events.NICKNAME_CHANGE, (e) => {
+      if(e.chat_id === chat_id) setName(e.newName)
+    })
+    
+    AppEvent.on(Events.MSG_VANISH, (e) => {
+      if(e.chat_id !== chat_id) return
+      setVanish_enabled(e.duration)
+    })
+    
     /*socket.on('message:status', async (data) => {
       await MessageStatus(data.msg_id, data.status, data.at)
     })*/
   }, [])
   
-  const clearMsgs = () => setMessages([])
-  
-  useEffect(() => {
+  /* useEffect(() => {
     const buttonHandler = BackHandler.addEventListener("hardwareBackPress", () => {
-      clearMsgs()
     })
     return () => buttonHandler.remove()
-  }, [])
+  }, []) */
   
   const send = async (params = { input: null }) => {
     try {
@@ -125,7 +114,7 @@ const Chat = () => {
         content_url : null,
         attachments: [],
         reply_to : null,
-        disappears_at : null,
+        disappears_at : msg_vanish_millis,
         to: recipient_id
       })
       const sender = sender_data && JSON.parse(sender_data)
@@ -152,9 +141,12 @@ const Chat = () => {
   }
   
   return ( !isReady? null :
-    <ImageBackground source={{uri: walls[1]}} resizeMode='cover' style={{
-      ...styles.container,
-    }}>
+    <ImageBackground imageStyle={{
+      opacity: .3
+    }} source={{uri: walls[0]}} resizeMode='cover' style={{
+        ...styles.container,
+      }}
+    >
       <Stack.Screen
         options={{
           headerShown: true
@@ -225,7 +217,6 @@ const Chat = () => {
         }}>
           <TouchableOpacity onPress={() => { 
             router.back()
-            clearMsgs()
           }}>
             <ArrowLeft color='white'/>
           </TouchableOpacity>
@@ -244,10 +235,17 @@ const Chat = () => {
               color: 'white',
               fontWeight: 'bold',
             }}>{name}</Text>
-            <Text style={{
-              fontSize: 10,
-              color: 'darkgray',
-            }}>Last seen online 8:19AM</Text>
+            <View style={{
+              alignItems: 'center',
+              gap: 5,
+              flexDirection:'row'
+            }}>
+              <Text style={{
+                fontSize: 10,
+                color: 'darkgray',
+              }}>Online • 8:19AM</Text>
+              {vanish_enabled > 0? <HugeiconsIcon icon={TimeHalfPassIcon} color='darkgray' size={10} strokeWidth={2}/> : null}
+            </View>
           </View>
         </View>
       }
@@ -269,7 +267,14 @@ const Chat = () => {
                 text: 'Call',
                 primary: true,
                 onPress: () => {
-                  setAudio_call_modal(true)
+                  router.push({
+                    pathname: '/pages/chat/call/audio_call',
+                    params: {
+                      chat_name: name,
+                      avatar,
+                      chat_id
+                    }
+                  })
                   handleViber.Strong()
                 }
               },
@@ -285,7 +290,9 @@ const Chat = () => {
               pathname: '/pages/chat/settings',
               params: {
                 name,
-                avatar
+                avatar,
+                id: recipient_id,
+                chat_id
               }
             })
           }} key={2}>
@@ -297,15 +304,6 @@ const Chat = () => {
         padding: 0,
       }}
       />
-      {audio_call_modal? <Audio 
-        chat={{
-          avatar,
-          name,
-          chat_id,
-          wall: walls[2]
-        }}
-        onClose={() => setAudio_call_modal(false)}
-      /> : null}
       {/*<Text className='text-white'>Chat</Text>*/}
       <FlatList 
         data={messages}
@@ -513,5 +511,4 @@ const styles = StyleSheet.create({
   },
 
 });
-
 export default Chat;

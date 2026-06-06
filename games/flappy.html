@@ -4,7 +4,6 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1.0" />
         <title>Quonvers - Flappy Bird</title>
-
         <style>
             * {
                 margin: 0;
@@ -80,7 +79,6 @@
                     ctx.beginPath();
                     ctx.arc(this.x + 5, this.y - 4, 3, 0, Math.PI * 2);
                     ctx.fill();
-
                     ctx.restore();
                 },
                 update() {
@@ -138,22 +136,16 @@
             }
             function drawBackground() {
                 const bg = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-
                 bg.addColorStop(0, "#141414");
                 bg.addColorStop(1, "#0a0a0a");
-
                 ctx.fillStyle = bg;
                 ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
                 particles.forEach(p => {
                     ctx.fillStyle = "rgba(106,105,254,.25)";
-
                     ctx.beginPath();
                     ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
                     ctx.fill();
-
                     p.y += p.speed;
-
                     if (p.y > HEIGHT) {
                         p.y = -10;
                         p.x = Math.random() * WIDTH;
@@ -163,7 +155,6 @@
             function drawPipes() {
                 pipes.forEach(pipe => {
                     ctx.save();
-
                     ctx.shadowBlur = 25;
                     ctx.shadowColor = "#6a69fe";
                     ctx.radius = 50
@@ -173,141 +164,93 @@
                         pipe.x + pipe.width,
                         0
                     );
-
                     g.addColorStop(0, "#5554ff");
                     g.addColorStop(1, "#6a69fe");
-
                     ctx.fillStyle = g;
-
                     ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
-
                     ctx.fillRect(
                         pipe.x,
                         HEIGHT - pipe.bottom,
                         pipe.width,
                         pipe.bottom
                     );
-
                     ctx.restore();
                 });
             }
-
             function drawScoreCard() {
                 ctx.fillStyle = "rgba(255,255,255,.06)";
-
                 roundRect(WIDTH / 2 - 60, 20, 120, 60, 16);
-
                 ctx.fill();
-
                 ctx.fillStyle = "#fff";
                 ctx.font = "bold 34px Arial";
                 ctx.textAlign = "center";
                 ctx.fillText(score, WIDTH / 2, 60);
-
                 ctx.textAlign = "left";
-
                 ctx.fillStyle = "#a1a1aa";
                 ctx.font = "16px Arial";
                 ctx.fillText("Best score " + bestScore, 20, 40);
-                ctx.fillText("Attemps " + attemps, 20, 70);
+                ctx.fillText("Attempt " + attemps, 20, 70);
             }
-
             function drawStartScreen() {
                 if (gameStarted) return;
-
                 ctx.textAlign = "center";
-
                 ctx.fillStyle = "#fff";
                 ctx.font = "bold 42px Arial";
                 ctx.fillText("FLAPPY", WIDTH / 2, 250);
-
                 ctx.fillStyle = "#6a69fe";
                 ctx.fillText("BIRD", WIDTH / 2, 300);
-
                 ctx.fillStyle = "#9ca3af";
                 ctx.font = "20px Arial";
-
-                ctx.fillText("Tap to start", WIDTH / 2, 380);
+                ctx.fillText("Tap to start", WIDTH / 2, 360);
             }
-
             function drawGameOver() {
                 if (!gameOver) return;
-
                 ctx.fillStyle = "rgba(0,0,0,.55)";
                 ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
                 ctx.fillStyle = "rgba(20,20,20,.95)";
-
                 roundRect(40, 210, 320, 220, 24);
-
                 ctx.fill();
-
                 ctx.strokeStyle = "#6a69fe";
                 ctx.lineWidth = 2;
                 ctx.stroke();
-
                 ctx.textAlign = "center";
-
                 ctx.fillStyle = "#fff";
                 ctx.font = "bold 34px Arial";
-
                 ctx.fillText("Game Over", WIDTH / 2, 280);
-
                 ctx.fillStyle = "#6a69fe";
-
                 ctx.font = "bold 50px Arial";
-
                 ctx.fillText(score, WIDTH / 2, 345);
-
                 ctx.fillStyle = "#9ca3af";
-
                 ctx.font = "18px Arial";
-
                 ctx.fillText("Tap to restart", WIDTH / 2, 395);
             }
-
             let pipeTimer = 0;
-
             function update() {
                 if (!gameStarted || gameOver) return;
-
                 bird.update();
-
                 pipeTimer++;
-
                 if (pipeTimer > 95) {
                     createPipe();
                     pipeTimer = 0;
                 }
-
                 for (let i = pipes.length - 1; i >= 0; i--) {
                     const pipe = pipes[i];
-
                     pipe.x -= 3;
-
                     if (!pipe.scored && pipe.x + pipe.width < bird.x) {
                         pipe.scored = true;
                         score++;
-
                         if (score > bestScore) {
-                            bestScore = score;
-
-                            localStorage.setItem(
-                                "premium_flappy_best",
-                                bestScore
-                            );
+                          bestScore = score;
+                          localStorage.setItem("premium_flappy_best",bestScore);
                         }
                     }
-
                     if (collision(pipe)) {
                         gameOver = true;
                     }
-
                     if (pipe.x + pipe.width < 0) {
                         pipes.splice(i, 1);
                     }
                 }
-
                 if (
                     bird.y + bird.radius >= HEIGHT ||
                     bird.y - bird.radius <= 0
@@ -315,41 +258,31 @@
                     gameOver = true;
                 }
             }
-
             function render() {
                 drawBackground();
-
                 drawPipes();
-
                 bird.draw();
-
                 drawScoreCard();
-
                 drawStartScreen();
-
                 drawGameOver();
             }
-
             function loop() {
                 update();
                 render();
 
                 requestAnimationFrame(loop);
             }
-
             function input() {
                 if (gameOver) {
                     resetGame();
                     return;
                 }
-
                 if (!gameStarted) {
                     gameStarted = true;
                 }
 
                 bird.flap();
             }
-
             window.addEventListener("mousedown", input);
 
             window.addEventListener(
@@ -360,13 +293,11 @@
                 },
                 { passive: false }
             );
-
             window.addEventListener("keydown", e => {
                 if (e.code === "Space") {
                     input();
                 }
             });
-
             loop();
         </script>
     </body>

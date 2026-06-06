@@ -16,7 +16,8 @@ export default function Header({
   isBack = false,
   hd = false,
   backIcon = (<ArrowLeft color='white'/>),
-  titleStyle
+  titleStyle,
+  styleType
 }) {
   return (
     <Stack.Screen
@@ -30,8 +31,8 @@ export default function Header({
         headerTitle: () => (
           <Text numberOfLines={1} 
             style={{ 
-              fontSize: 22, 
-              fontWeight: 'bold',
+              fontSize: styleType == 'chat_settings'? 18 : 22, 
+              fontWeight: styleType == 'chat_settings'? 'normal' : 'bold',
               color: 'white',
               ...titleStyle
             }}>
