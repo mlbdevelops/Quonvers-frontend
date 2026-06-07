@@ -12,7 +12,7 @@ import DateFormat from '@/utils/day'
 const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, isLast, room_icon}) => {
   const [showTimestamp, setShowTimestamp] = useState(false)
   const [msgStatus, setMsgStatus] = useState(item.status)
-  const [msgStatusAt, setMsgStatusAt] = useState(item.status_at * 1000)
+  const [msgStatusAt, setMsgStatusAt] = useState(item.status_at)
   const [reaction, setReaction] = useState([])
   
   function hasAnyAlphabet() {

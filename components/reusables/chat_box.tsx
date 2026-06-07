@@ -94,7 +94,7 @@ export default function ChatBox({chat}) {
             color: !has_unread? 'darkgray' : 'white',
             fontSize: 12,
             marginBottom: 4,
-          }}>{DateFormat(timestamp * 1000, true)}</Text>
+          }}>{DateFormat(timestamp, true)}</Text>
           <View style={{
             flexDirection: 'row',
             gap: 8,

@@ -3,8 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import AppEvent, { Events } from '@/utils/eventEmitter';
 import { storage } from '@/storage/mmkv'
 
-const now = () => Date.now() / 1000;
-
 interface MessageProps {
   id?: string
   chat_id: string,
@@ -14,7 +12,7 @@ interface MessageProps {
   content_url?: string | null,
   attachments?: any | null,
   reply_to?: string | null,
-  disappears_at?: number | null,
+  disappears_at?: number,
   to: string,
   room_type: string,
   created_at: number | null
@@ -37,7 +35,7 @@ export const localMsgStore = async ({
   try {
     const db = await getDb();
     const message_id = uuidv4();
-    const timestamp = now();
+    const timestamp = Date.now();
     const { user } = JSON.parse(storage.getString('user'))
     const finalId = id ?? message_id;
     const finalCreatedAt = created_at ?? timestamp;
@@ -52,6 +50,8 @@ export const localMsgStore = async ({
       [sender_id]
     );
     
+    const vanish_at = Date.now() + parseInt(disappears_at)
+    
     const message = {
       id: finalId,
       chat_id: isLogged? chat_id : (existingMember?.chat_id ?? chat_id),
@@ -63,11 +63,9 @@ export const localMsgStore = async ({
       status: sender_id === user.id ? 'Sending' : 'Delivered',
       created_at: finalCreatedAt,
       updated_at: finalCreatedAt,
-      disappears_at: disappears_at && (Date.now() + disappears_at),
+      disappears_at: vanish_at,
       status_at: timestamp
     };
-    
-    console.log(message)
     
     const checkIfAlreadyExist = await db?.getFirstAsync('SELECT id FROM messages WHERE id = ?', [message.id]);
     if (checkIfAlreadyExist) return;

@@ -8,7 +8,7 @@ import { AuthContext } from '@/utils/authContext'
 const retry = (msg) => {
   setTimeout(() => {
     sendMessage(msg)
-  }, 2000);
+  }, 5000);
 }
 
 export async function sendMessage(msg, recipient) {

@@ -63,8 +63,9 @@ const Settings = () => {
       label: 'Customization', 
       items: [
         { 
-          label: "Theme",
+          label: "Chat theme",
           icon: <HugeiconsIcon color='white' icon={ColorsIcon}/>,
+          action: () => router.push({pathname:'/pages/chat/settings/chat_theme', params: {id, avatar, name, chat_id}})
         },
         { 
           label: "Change name",
@@ -160,10 +161,7 @@ const Settings = () => {
           headerShown: true,
         }}
       />
-      <Header isBack title={name} titleStyle={{
-        fontWeight: 'normal',
-        fontSize: 18,
-      }}/>
+      <Header isBack title={name} styleType={'chat_settings'}/>
       <View style={{
         flexDirection: 'column',
         alignItems: 'center',

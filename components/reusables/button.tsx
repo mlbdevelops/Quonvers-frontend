@@ -15,7 +15,8 @@ const Button = ({
   icon,
   iconPosition = 'left',
   titleStyle,
-  bold = true
+  bold = true,
+  flat
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { isKeyboardOpen } = useKeyboard()
@@ -50,7 +51,7 @@ const Button = ({
         display: hideOnKeyboardShown && isKeyboardOpen && 'none',
         height: 45,
         borderRadius: 50,
-        backgroundColor: '#6a69fe',
+        backgroundColor: flat? undefined : '#6a69fe',
         alignItems: 'center',
         justifyContent: 'center',
         marginVertical: 5,
@@ -62,7 +63,7 @@ const Button = ({
     >
       {icon && iconPosition == 'left' && icon}
       {!isLoading && (title && <Text style={{ 
-        color: style?.color || 'white',
+        color: flat? '#6a69fe' : style?.color || 'white',
         fontWeight: bold? 'bold' : 'normal',
         ...titleStyle,
       }}>{title}</Text>)}

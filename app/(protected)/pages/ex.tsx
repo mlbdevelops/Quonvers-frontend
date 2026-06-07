@@ -15,18 +15,18 @@ export default function GestureExamplePage() {
 
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
-      translateX.value = event.translationX;
+      //translateX.value = event.translationX;
       translateY.value = event.translationY;
     })
     .onEnd(() => {
-      translateX.value = withSpring(0);
+      //translateX.value = withSpring(0);
       translateY.value = withSpring(0);
     });
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { translateX: translateX.value },
+        //{ translateX: translateX.value },
         { translateY: translateY.value },
         {
           rotate: `${translateX.value / 10}deg`,
@@ -38,12 +38,22 @@ export default function GestureExamplePage() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Drag The Card</Text>
-
-      <GestureDetector gesture={panGesture}>
+      <View style={{
+        height: 500,
+        width: 50,
+        borderRadius: 50,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'white',
+      }}>
+      <GestureDetector style={{
+        padding: 20,
+      }} gesture={panGesture}>
         <Animated.View style={[styles.card, animatedStyle]}>
           <Text style={styles.cardText}>🔥 Quonvers</Text>
         </Animated.View>
       </GestureDetector>
+      </View>
     </View>
   );
 }
