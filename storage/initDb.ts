@@ -5,12 +5,17 @@ export const initDatabase = async () => {
   try {
   /*
   await db.execAsync(`
-    DROP TABLE messages
+    DROP TABLE chat_theme
   `)
   
-  return await db.execAsync(`
+  await db.execAsync(`
+    ALTER TABLE chat_theme
+    ADD COLUMN source_type TEXT DEFAULT 'app' NOT NULL
+  `)
+  
+  await db.execAsync(`
     ALTER TABLE messages
-    ADD COLUMN disappearing_millisecs INTEGER
+    ADD COLUMN room_type TEXT DEFAULT 'private'
   `)
   */
   
@@ -24,7 +29,8 @@ export const initDatabase = async () => {
       username TEXT,
       name TEXT,
       avatar TEXT,
-      is_pro BOOLEAN DEFAULT false
+      is_pro BOOLEAN DEFAULT false,
+      UNIQUE(user_id)
     );
     
     -- DISAPEARING MESSAGES
@@ -32,15 +38,17 @@ export const initDatabase = async () => {
       chat_id TEXT NOT NULL UNIQUE,
       disappearing_millisecs INTEGER DEFAULT 0 NOT NULL,
       ui_index INTEGER DEFAULT 0 NOT NULL,
-      set_by TEXT
+      set_by TEXT,
+      UNIQUE(chat_id)
     );
     
     --THEME
     CREATE TABLE IF NOT EXISTS chat_theme (
       chat_id TEXT PRIMARY KEY,
-      bg_uri TEXT,
-      bg_opacity INTEGER,
-      bubble_color TEXT DEFAULT '#5E4BFA'
+      bg_uri TEXT DEFAULT 'bg_default',
+      bg_opacity INTEGER DEFAULT 0.4,
+      bubble_color TEXT DEFAULT '#5E4BFA',
+      UNIQUE(chat_id)
     );
     
     -- CHATS
@@ -56,9 +64,11 @@ export const initDatabase = async () => {
       last_message_status TEXT,
       created_at INTEGER,
       status TEXT,
+      has_unread BOOLEAN DEFAULT false,
       muted BOOLEAN DEFAULT false,
       disappearing_duration INTEGER,
-      pinned_at INTEGER,
+      last_change_timestamp INTEGER,
+      pinned BOOLEAN DEFAULT false,
       favorite BOOLEAN DEFAULT false,
       archived BOOLEAN DEFAULT false,
       locked BOOLEAN DEFAULT false
@@ -75,7 +85,6 @@ export const initDatabase = async () => {
       allow_forwarding BOOLEAN DEFAULT false,
       last_read_message_id TEXT,
       last_read_at INTEGER,
-      unread_count INTEGER DEFAULT 0,
       joined_at INTEGER,
       can_send_messages BOOLEAN DEFAULT true,
       UNIQUE(chat_id, user_id)
@@ -92,9 +101,10 @@ export const initDatabase = async () => {
       reply_to TEXT,
       edited BOOLEAN DEFAULT false,
       deleted BOOLEAN DEFAULT false,
-      server_id TEXT,
+      disappearing_millisecs INTEGER,
       status TEXT,
       status_at INTEGER,
+      room_type TEXT DEFAULT 'private',
       disappears_at INTEGER,
       created_at INTEGER,
       updated_at INTEGER
@@ -137,19 +147,19 @@ export const initDatabase = async () => {
       message TEXT NOT NULL
     );
     
-    CREATE TABLE IF NOT EXISTS sent_requests(
-      id TEXT PRIMARY KEY,
-      sender_id TEXT NOT NULL,
+    CREATE TABLE IF NOT EXISTS pending_aks(
+      status TEXT NOT NULL,
+      msg_id TEXT NOT NULL,
       toUser TEXT NOT NULL,
-      last_sent TEXT NOT NULL,
-      message TEXT NOT NULL
+      at TEXT NOT NULL
     );
     
-    CREATE TABLE IF NOT EXISTS accepted_requests(
-      id TEXT PRIMARY KEY,
-      sender_id TEXT NOT NULL,
+    CREATE TABLE IF NOT EXISTS pending_msg_updates(
+      message_id TEXT NOT NULL,
+      content TEXT,
       toUser TEXT NOT NULL,
-      accepted_at TEXT NOT NULL
+      sender_id TEXT NOT NULL,
+      command TEXT NOT NULL
     );
     
     -- INDEXES

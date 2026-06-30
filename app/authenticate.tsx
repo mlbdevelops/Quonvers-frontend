@@ -5,13 +5,9 @@ import { useState, useEffect } from 'react'
 import { UserRoundPlus, KeyRound } from 'lucide-react-native'
 import { router } from 'expo-router'
 import FadeInView from '@/components/reusables/fadeInView'
-import StarsBackground from '@/components/onboardings/auth_bg_dots'
-import CharacterAnimation from '@/components/onboardings/character_animation'
 import FloatingProfiles from '@/components/onboardings/FloatingProfiles'
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { 
-  MailIcon
-} from '@hugeicons/core-free-icons';
+import { MailIcon } from '@hugeicons/core-free-icons';
 import { LinearGradient } from 'expo-linear-gradient'
 
 export default function Authenticate() {
@@ -21,47 +17,9 @@ export default function Authenticate() {
   const words = [
     'Quonvers',
     'Explore',
-    'Meet',
+    'Connect',
     'Control',
   ];
-  
-  async function signInWithGoogle() {
-    //setLoad(true)
-    /*try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const token = await user.getIdToken();
-      const res = await fetch('http://localhost:4000/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-      const data = await res.json()
-      
-      if (!res.ok) {
-        setNotif({
-          error: true,
-          msg: data.msg,
-          title: 'Google error'
-        })
-        setLoad(false)
-      }
-      
-      if (res.ok) {
-        localStorage.setItem('user', JSON.stringify(data.user))
-        localStorage.setItem('token', JSON.stringify(data.token))
-        location.reload()
-      }
-      
-    } catch (error) {
-      setNotif({
-        error: true,
-        msg: `Oops, something bad happened, check your network connection and try again, if the problem persists contact us.`,
-        title: 'Google error'
-      })
-      setLoad(false)
-    }*/
-  }
   
   useEffect(() => {
     const currentWord = words[wordIndex];
@@ -91,22 +49,14 @@ export default function Authenticate() {
   
   
   return(
-    <ImageBackground source={require('../assets/onboarding/1778518080083.jpg')} style={styles.back}>
-      {/*
-      <CharacterAnimation/>
-      <StarsBackground/>
-      */}
-      
+    <ImageBackground source={require('../assets/onboarding/auth_bg.png')} style={styles.back}>
       <LinearGradient 
-        colors={['#22223d', '#0a0a0ace']} 
+        colors={['#22223da4', '#0a0a0a']} 
         start={{ x:0, y:1 }} 
         end={{x: 0, y:0 }} 
         style={styles.body}>
-        
         <FloatingProfiles/>
-        
         <View style={{
-          //flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
           gap: 5,
@@ -136,43 +86,8 @@ export default function Authenticate() {
           <Text style={{
             color: 'darkgray',
             textAlign: 'center',
-          }}>Meet people and become discoverable only when you allow it.</Text>
+          }}>Where real conversations start and meaningful connections are made </Text>
         </View>
-        
-        {/*<View style={{
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 10,
-          //marginTop: ,
-        }}>
-          <Image style={{
-            height: 100,
-            width: 100,
-          }} source={require('../assets/images/icon@2.png')}/>
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 5,
-          }}>
-            <Text 
-              style={{
-                fontSize: 40,
-                fontWeight: 'bold',
-                color: 'white',
-              }}
-            >{text}</Text>
-            <FadeInView duration={400}>
-              <View style={{
-                height: 40,
-                width: 3.5,
-                backgroundColor: 'white',
-                borderRadius: 1,
-              }}></View>
-            </FadeInView>
-          </View>
-        </View>*/}
-        
         <View style={styles.optionsView}>
           <View style={{
             flexDirection: 'row',
@@ -181,21 +96,12 @@ export default function Authenticate() {
             width: '100%',
           }}>
             <TouchableOpacity onPress={() => router.push('/auth/register')} style={{...styles.option, alignItems: 'center', justifyContent: 'center', gap: 8}}>
-              
-              {/*<HugeiconsIcon color='white' icon={MailIcon}/>*/}
-              
               <Text style={{
                 ...styles.text,
                 fontWeight: 'bold',
               }}>Sign up</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/auth')} style={{...styles.option, alignItems: 'center', justifyContent: 'center', gap: 8}}>
-              {/*<HugeiconsIcon color='white' icon={MailIcon}/>
-                
-              <View style={{...styles.icon}}>
-                <KeyRound color='#6a69fe' size={17}/>
-              </View>
-                */}
               <Text style={{
                 ...styles.text,
                 fontWeight: 'bold',
@@ -215,21 +121,14 @@ export default function Authenticate() {
             width: '100%',
             justifyContent: 'space-between',
           }}>
-            <TouchableOpacity onPress={signInWithGoogle} style={{...styles.option}}>
-               {/*<View style={{fontSize: 20, ...styles.icon}}>
-               <Text style={{
-                color: '#6a69fe',
-                fontWeight: 'bold',
-                fontSize: 25,
-                }}>G</Text>
-              </View>*/}
+            <TouchableOpacity onPress={undefined} style={{...styles.option}}>
               <Image style={{
                 height: 27,
                 width: 27,
               }} source={require('../assets/images/google_logo.png')}/>
               <Text style={{color:'white', marginLeft: 4,}}> <Text style={{fontWeight: 'bold', ...styles.text}}>Google</Text></Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={signInWithGoogle} style={{...styles.option}}>
+            <TouchableOpacity onPress={undefined} style={{...styles.option}}>
               
               <Image style={{
                 height: 27,
@@ -244,7 +143,6 @@ export default function Authenticate() {
             Terms of use</Text>
           </Text>
         </View>
-        
       </LinearGradient>
     </ImageBackground>
   )
@@ -302,7 +200,6 @@ const styles = StyleSheet.create({
     width: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    //backgroundColor: 'rgba(0, 0, 0, 0.2)',
     borderRadius: 50,
   },
   

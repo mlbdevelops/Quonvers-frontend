@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { storage } from "../../storage/mmkv";
 import { getDb } from "@/storage/db";
 import { socket } from './socket_provider.ts'
-import { sendMessage } from '@/utils/MessageServices/index'
+import { sendMessage, SendMessageUpdate } from '@/utils/MessageServices/index'
 
 export default function SocketConnector() {
   const [token, setToken] = useState<string | null>(null);
@@ -43,8 +43,24 @@ export default function SocketConnector() {
         ['Sending', user?.id]
       )
       for(const msg of pending_msgs){
-        console.log(msg);
+        delete msg.message_id
         sendMessage(msg)
+      }
+      
+      const pending_aks = await db?.getAllAsync(`
+        DELETE FROM pending_aks RETURNING *`
+      )
+      
+      for(const aks of pending_aks){
+        socket.emit('message:seen', aks)
+      }
+      
+      const pending_msg_updates = await db?.getAllAsync(`
+        DELETE FROM pending_msg_updates RETURNING *`
+      )
+      
+      for(const pmu of pending_msg_updates){
+        SendMessageUpdate(pmu)
       }
     });
     

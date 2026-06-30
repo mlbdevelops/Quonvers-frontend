@@ -12,16 +12,12 @@ const retry = (msg) => {
 }
 
 export async function sendMessage(msg, recipient) {
-  
   try {
-    if (!msg || !socket.connected) return
+    if (!msg || !socket?.connected) return
     const db = await getDb();
-    
-    const checkIfExist = await db?.getAllAsync('SELECT id FROM chats WHERE id = ?', [msg?.chat_id])
-    
-    if (checkIfExist.length) {
+    const checkIfExist = await db?.getFirstAsync('SELECT id FROM chats WHERE id = ?', [msg?.chat_id])
+    if (checkIfExist?.id) {
       socket.emit("message:send", msg, async (ack) => {
-        //ack
         if (!ack?.ok) return retry(msg);
         await MessageStatus(msg.id, 'Sent', ack.at);
         await db?.runAsync('DELETE FROM pendings WHERE message_id = ?',[msg.id])
@@ -29,23 +25,18 @@ export async function sendMessage(msg, recipient) {
     }else{
       const userString = storage.getString('user')
       const { user } = JSON.parse(userString)
-      
       await createChat(recipient, msg.chat_id)
-      
       socket.emit("message:send", {...msg, sender_data: {
         id: user.id,
         avatar: user.avatar,
         name: user.name,
         username: user.username
       }}, async (ack) => {
-        
-        //ack
         if (!ack?.ok) return retry(msg);
         await MessageStatus(msg.id, 'Sent', ack.at);
         await db?.runAsync('DELETE FROM pendings WHERE message_id = ?',[msg.id])
       });
     }
-    
   } catch (err) {
     console.error('Error:', err);
   }

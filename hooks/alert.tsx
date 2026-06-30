@@ -88,9 +88,9 @@ export const CustomAlertProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 </Text>
               )}
               
-              <Text style={{ fontSize: 15, marginBottom: 20, color: 'white', whiteSpace: 'pre-line' }}>
+              {alert.message && <Text style={{ fontSize: 15, marginBottom: 20, color: 'white', whiteSpace: 'pre-line' }}>
                 {alert.message}
-              </Text>
+              </Text>}
               
               <View style={{ flexDirection: "row", gap: 30, width: '100%', justifyContent: 'flex-end', paddingBottom: 3.5, paddingRight: 8.5, }}>
                 {alert.buttons?.map((btn, i) => (
@@ -100,6 +100,9 @@ export const CustomAlertProvider: React.FC<{ children: React.ReactNode }> = ({ c
                       btn.onPress?.();
                       closeAlert();
                       handleViber.Light()
+                    }}
+                    style={{
+                      display: typeof btn?.display == 'boolean' && !btn?.display? 'none' : btn?.display? undefined : undefined,
                     }}
                   >
                     <Text style={{ 

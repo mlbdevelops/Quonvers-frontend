@@ -4,9 +4,11 @@ export default async function VanishExpiredMessages() {
   try {
     const db = await getDb()
     const now = Date.now()
-    await db.runAsync(`
-      DELETE FROM messages WHERE disappears_at + ? <= ?
-    `, [now, now])
+    const msgs = await db.runAsync(`
+      DELETE FROM messages 
+      WHERE disappears_at <= ?
+    `, [now])
+    console.log('❌ DELETED EXPIRED MESSAGES')
   } catch (error) {
     console.error(error);
   }

@@ -18,10 +18,14 @@ export const MessageStatus = async (message_id, status, status_at) => {
       `,
       [status, status_at, message_id]
     );
-    AppEvent.emit(Events.MSG_STATUS_UPDATE, {msg_id: message_id, status, at: status_at})
+    const emitObject = {
+      msg_id: message_id,
+      status, 
+      at: status_at
+    }
+    AppEvent.emit(Events.MSG_STATUS_UPDATE, emitObject)
     console.log('Msg status edited successfully ✓');
   } catch (err) {
     console.error('Error:', err);
   }
-  //messageEmitter.emit('message_status', { message_id, status });
 };

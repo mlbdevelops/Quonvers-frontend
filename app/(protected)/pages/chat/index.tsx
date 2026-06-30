@@ -1,13 +1,13 @@
 //import UseMediaPicker from '../../../quonvers_mob/frontend/hooks/UseMediaPicker';
 import Image from '@/components/reusables/Image';
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Pressable, Keyboard, FlatList, TouchableWithoutFeedback, ScrollView, Alert, ImageBackground, ActivityIndicator, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Pressable, Keyboard, FlatList, TouchableWithoutFeedback, ScrollView, Alert, ImageBackground, ActivityIndicator, BackHandler, ViewToken } from 'react-native';
 import Header from '@/components/header'
 import { ArrowLeft, Phone, PlusCircle, Smile, AudioLines, SendHorizontal, ArrowUp, CheckCheck } from 'lucide-react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Image02Icon, MicIcon, SettingsIcon, VideoIcon, ImagesIcon, CallAdd02Icon, AudioWave01Icon, Mic02Icon, AddCircleIcon, SmileIcon, SentIcon, Check01Icon, CameraIcon, AddIcon, Unlink04Icon, Clock01Icon, TimeHalfPassIcon } from '@hugeicons/core-free-icons';
-import { useState, useEffect, useRef, useContext } from 'react'
+import { useState, useEffect, useRef, useContext, useCallback } from 'react'
 import haptics from '@/hooks/haptics'
 import trans from '@/hooks/fetch'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -16,21 +16,26 @@ import { useKeyboard } from '@/hooks/keyboard';
 import Message from '@/components/reusables/message'
 import Button from '@/components/reusables/button'
 import MsgFocus from '@/components/modal_pages/msg_focus'
+import EditMessage from '@/components/modal_pages/edit_message'
 import MessagesOptions from '@/components/modal_pages/chat_send_messages_options'
 import { useAnimatedKeyboard } from "react-native-keyboard-controller";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated'
-import { localMsgStore, deleteMessage, sendMessage } from '@/utils/MessageServices/index'
+import { localMsgStore, deleteMessage, sendMessage, SendMessageUpdate } from '@/utils/MessageServices/index'
 import { storage } from '@/storage/mmkv'
 import shouldShowAvatar from '@/utils/logics/is_same_sender'
 import { socket } from '@/hooks/sockets/socket_provider'
 import { getMessages } from '@/utils/MessageServices/GetMesages'
 import { ChatContext } from '@/contexts/chatContext'
 import { useCustomAlert } from '@/hooks/alert'
+import { useOptionList } from '@/hooks/optionList'
 import { UseMediaPicker } from '@/hooks/useMediaPicker'
 import { FlashList } from '@shopify/flash-list'
 import AppEvent, { Events } from '@/utils/eventEmitter';
-import { MessageStatus } from '@/utils/MessageServices'
+import { MessageStatus, ProcessRecipientMessages } from '@/utils/MessageServices'
 import Info from '@/components/chat/info'
+import { backgroundImage } from '@/utils/backgrounds'
+import { useNavigation } from '@react-navigation/native';
+import { getDb } from '@/storage/db'
 
 const Chat = () => {
   const context = useContext(ChatContext)
@@ -43,20 +48,63 @@ const Chat = () => {
   const [selected_msg_for_focus_mode, setSelected_msg_for_focus_mode] = useState<any>(null)
   const [input, setinput] = useState<any>('')
   const [logged_user, setLoggedUser] = useState<string | null>(JSON.parse(storage.getString('user')).user.id)
-  const { chat_id, chat_type, avatar, name: initialName, recipient_id, sender_data, msg_vanish_millis } = useLocalSearchParams()
+  const { chat_id, chat_type, avatar, name: initialName, recipient_id, sender_data, msg_vanish_millis, bubble_color: loggedUserInitialBubbleColor, bg_uri: initialBgUri, brightness: initialBrightness } = useLocalSearchParams()
+  const [bubble_color, setBubble_color] = useState(loggedUserInitialBubbleColor)
+  const [bg_uri, setBg_uri] = useState(initialBgUri)
+  const [brightness, setBrightness] = useState(Number(initialBrightness))
   const [name, setName] = useState(initialName)
   const [messages, setMessages] = useState<any[]>(context.messages || [])
   const flatListRef = useRef(null);
   const [messageOptions, setMessageOptions] = useState<boolean>(false)
   const [vanish_enabled, setVanish_enabled] = useState(msg_vanish_millis || 0)
   const [pickMedia, setPickMedia] = useState<boolean>(false)
+  const navigation = useNavigation();
+  const optionList = useOptionList()
+  const [isMsgEditing, setIsMsgEditing] = useState(false)
+  const [messageFocusMode, setMessageFocusMode] = useState(false)
   
-  const walls = [
-    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ9JohhdOwVkWIenjINcSm62489tnbGS21EuKSW7nNd8g&s=10',
-    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRJ_wXo5gRE7vn6iAFHcPRbmRsVL9V0U-9ZMXcFolP10Q&s=10',
-    'https://wallpapers.com/images/hd/minimalist-planetary-design-yo4xhchp4govyrdq.jpg',
-    'https://i.pinimg.com/736x/0d/af/27/0daf274684cc3283e426e9e0bee842a9.jpg',
-  ]
+  useEffect(() => {
+    navigation.addListener('focus', () => {
+      context.setActiveChatRoomId(chat_id);
+    });
+    
+    const unsubscribeBlur = navigation.addListener('blur', () => {
+      context.setActiveChatRoomId(null);
+      console.log('Chat_id removed in Active room')
+    });
+    return () => unsubscribeBlur();
+  }, [navigation, chat_id]);
+  
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 70,
+    minimumViewTime: 500,
+  }).current;
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    const unseenRecipientMsgs = viewableItems
+      .map(item => item.item)
+      .filter(msg => msg && msg.sender_id !== logged_user && msg.status !== 'Seen');
+    for (let msg of unseenRecipientMsgs) {
+      ProcessRecipientMessages(msg, 
+        (backData) => {
+          setMessages((prevMessages) => {
+            const index = prevMessages.findIndex(m => m.id === backData.id);
+            if (index === -1) return prevMessages;
+            const updatedMessages = [...prevMessages];
+            updatedMessages[index] = {
+              ...updatedMessages[index],
+              status: backData?.status
+            };
+            return updatedMessages;
+          });
+        }
+      );
+    }
+  }, [logged_user]);
+
+  const viewabilityConfigCallbackPairs = useRef([
+    { viewabilityConfig, onViewableItemsChanged },
+  ]);
   
   function isTheLastMessageMine(messages: any, currentMassage: any) {
     const verif = messages[0]
@@ -65,7 +113,6 @@ const Chat = () => {
   
   useEffect(() => {
     (async () => {
-      //return await context.load_messages(chat_id)
       if(chat_id){
         const messages = await getMessages({chat_id})
         if(messages.length){
@@ -77,11 +124,11 @@ const Chat = () => {
   }, [])
   
   useEffect(() => {
-    AppEvent.on(Events.MSG_SEND, (msg) => {
+    AppEvent.on(Events.MSG_SEND, async (msg) => {
+      if(msg?.disable_ui_update) return
       if(msg.chat_id !== chat_id) return
       if(msg.sender_id === logged_user) return
       setMessages((prev) => [msg, ...prev])
-      socket.emit('message:seen', { msg_id: msg.id, at: Date.now(), toUser: recipient_id, status: 'Seen' })
     })
     
     AppEvent.on(Events.NICKNAME_CHANGE, (e) => {
@@ -93,16 +140,44 @@ const Chat = () => {
       setVanish_enabled(e.duration)
     })
     
-    /*socket.on('message:status', async (data) => {
-      await MessageStatus(data.msg_id, data.status, data.at)
-    })*/
-  }, [])
-  
-  /* useEffect(() => {
-    const buttonHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+    AppEvent.on(Events.UPDATE_MESSAGE, (data) => {
+      if(data.chat_id !== chat_id) return
+      if(!data.message_id) return
+      setMessages((prev) => {
+        const getIndex = prev.findIndex(m => m.id === data.message_id)
+        if(getIndex === -1) return prev
+        const updateMessages = [...prev]
+        updateMessages[getIndex] = {
+          ...updateMessages[getIndex],
+          edited: data.edited,
+          deleted: data.deleted,
+          content: data.content
+        }
+        return updateMessages
+      })
     })
-    return () => buttonHandler.remove()
-  }, []) */
+    
+    AppEvent.on(Events.MSG_STATUS_UPDATE, (data) => {
+      if(!data.msg_id) return
+      setMessages((prev) => {
+        const getIndex = prev.findIndex(m => m.id === data.msg_id)
+        if(getIndex === -1) return prev
+        const updateMessages = [...prev]
+        updateMessages[getIndex] = {
+          ...updateMessages[getIndex],
+          status: data.status
+        }
+        return updateMessages
+      })
+    })
+    
+    AppEvent.on(Events.CHAT_THEME_CHANGE, (data) => {
+      if(chat_id !== data.chat_id) return
+      if(data.bubble_color) setBubble_color(data.bubble_color)
+      if(data.bg_uri) setBg_uri(data.bg_uri)
+      if(data.brightness) setBrightness(Number(data.brightness))
+    })
+  }, [])
   
   const send = async (params = { input: null }) => {
     try {
@@ -114,9 +189,10 @@ const Chat = () => {
         content_url : null,
         attachments: [],
         reply_to : null,
-        disappears_at : msg_vanish_millis,
+        disappearing_millisecs: msg_vanish_millis,
         to: recipient_id
-      })
+      }, chat_id)
+      if(!saveMsg?.content.trim()) return
       const sender = sender_data && JSON.parse(sender_data)
       setMessages((prev) => [saveMsg, ...prev])
       if(socket?.id && saveMsg?.id){
@@ -140,10 +216,78 @@ const Chat = () => {
     )
   }
   
+  const deleteForMe = async () => {
+    try {
+      const findMessageIndex = messages?.findIndex(m => m.id == selected_msg_for_focus_mode.id)
+      const isLast = selected_msg_for_focus_mode === messages[0]
+      console.log(isLast)
+      const updateLastChatTo = isLast ? messages[findMessageIndex + 1] : null
+      console.log(updateLastChatTo)
+      await deleteMessage(selected_msg_for_focus_mode?.id, chat_id, updateLastChatTo)
+    } catch (error) {
+      console.error(error);
+    }finally{
+      setMessages((prev) => prev.filter(msg => msg.id !== selected_msg_for_focus_mode.id))
+      setSelected_msg_for_focus_mode(null)
+    }
+  }
+  
+  const MessageUpdate = async (command) => {
+    const updateObj = {
+      sender_id: logged_user,
+      toUser: recipient_id,
+      command: command.type,
+      content: command?.type === 'delete'? null : command?.newContent,
+      message_id: selected_msg_for_focus_mode?.id
+    }
+    if(!updateObj.message_id || !updateObj.sender_id || !updateObj.toUser) return
+    const db = await getDb()
+    try {
+      await SendMessageUpdate(updateObj)
+    } catch (error) {
+      console.error(error);
+    }finally{
+      if(command.type == 'delete' && selected_msg_for_focus_mode?.deleted){
+        try {
+          await deleteForMe()
+        } catch (error) {
+          console.error(error);
+        }finally{
+          setMessages((prev) => prev.findIndex(m => m.id === selected_msg_for_focus_mode?.id))
+        }
+        return
+      }
+      if(command.type == 'delete') await db.runAsync('UPDATE messages SET deleted = ?, content = ?, status = ? WHERE id = ?', [command?.type === 'delete', command?.newContent, command.type == 'delete' && 'Deleted', selected_msg_for_focus_mode?.id])
+      if(command.type == 'edit') await db.runAsync('UPDATE messages SET edited = ?, content = ? WHERE id = ?', [command?.type === 'edit', command.newContent, selected_msg_for_focus_mode?.id])
+      setMessages((prev) => {
+        const getIndex = prev.findIndex(m => m.id === updateObj.message_id)
+        if(getIndex === -1) return prev
+        const updateMessages = [...prev]
+        updateMessages[getIndex] = {
+          ...updateMessages[getIndex],
+          edited: command.type == 'edit',
+          deleted: command.type == 'delete',
+          content: command.newContent,
+          ...command.type == 'delete' && { status: 'Deleted' }
+        }
+        const emitObject = {
+          msg_id: selected_msg_for_focus_mode.id,
+          status: command.type == 'delete' && 'Deleted', 
+          //at: command.type == 'delete' && Date.now(),
+          isEdit: command.type == 'edit'
+        }
+        AppEvent.emit(Events.MSG_STATUS_UPDATE, emitObject)
+        AppEvent.emit(Events.MSG_SEND, {...updateMessages[getIndex], disable_ui_update: true})
+        return updateMessages
+      })
+      setSelected_msg_for_focus_mode(null)
+    }
+  }
+  
   return ( !isReady? null :
     <ImageBackground imageStyle={{
-      opacity: .3
-    }} source={{uri: walls[0]}} resizeMode='cover' style={{
+      opacity: brightness
+    }} source={backgroundImage(bg_uri)} resizeMode='cover' style={{
         ...styles.container,
       }}
     >
@@ -152,48 +296,47 @@ const Chat = () => {
           headerShown: true
         }}
       />
-      {pickMedia? <UseMediaPicker onClose={() => setPickMedia(false)}/> : null}
-      {selected_msg_for_focus_mode &&
+      {pickMedia && <UseMediaPicker 
+        onClose={() => setPickMedia(false)}
+        onPick={() => setPickMedia(false)}
+      />}
+      {isMsgEditing && selected_msg_for_focus_mode && <EditMessage 
+        onClose={() => setIsMsgEditing(false)}
+        msg={selected_msg_for_focus_mode}
+        bubble_color={bubble_color}
+        logged_user={logged_user}
+        returnData={
+          ({newContent, message_id}) => {
+            MessageUpdate({type: 'edit', newContent, message_id })
+          }
+        }
+      />}
+      {selected_msg_for_focus_mode && messageFocusMode &&
         <MsgFocus 
           msg={selected_msg_for_focus_mode}
           user={logged_user}
+          showOnlyLabel={selected_msg_for_focus_mode.deleted? ['Delete'] : undefined }
+          showReactions={selected_msg_for_focus_mode.deleted? false : undefined }
+          bubble_color={bubble_color}
           actionTaken={ async (value) => {
+            setMessageFocusMode(false)
+            if(value == 'copy') setSelected_msg_for_focus_mode(null)
             if (value == 'delete') {
-              alert('Delete for', (
-                <View style={{
-                  padding: 0,
-                }}>
-                  <TouchableOpacity onPress={ async () => {
-                    setMessages((prev) => prev.filter(msg => msg.id !== selected_msg_for_focus_mode.id))
-                    await deleteMessage(selected_msg_for_focus_mode.id)
-                  }}>
-                    <Text style={{
-                      color: '#6a69fe',
-                      fontWeight: 'bold',
-                      marginTop: 10,
-                    }}>For me</Text> 
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity onPress={ async () => {
-                    setMessages((prev) => prev.filter(msg => msg.id !== selected_msg_for_focus_mode.id))
-                    await deleteMessage(selected_msg_for_focus_mode.id)
-                  }}>
-                    <Text style={{
-                      color: '#6a69fe',
-                      fontWeight: 'bold',
-                      marginTop: 30,
-                    }}>For everyone</Text> 
-                  </TouchableOpacity>
-                  <View></View> 
-                </View> 
-              ), [{ text: 'Cancel'}])
+              alert(null, 'Delete message', [
+                { text: 'For me', primary: true, bold: true, onPress: () => deleteForMe()},
+                { text: 'For everyone', primary: true, bold: true, display: selected_msg_for_focus_mode?.sender_id == logged_user && selected_msg_for_focus_mode?.deleted != true && selected_msg_for_focus_mode?.status != 'Sending', onPress: () => MessageUpdate({type: 'delete', newContent: null})},
+                { text: 'Cancel', onPress: () => setSelected_msg_for_focus_mode(null)}
+              ])
             }
-            if (value?.type == 'reaction') {
-              return null
+            if (value == 'edit') {
+              setIsMsgEditing(true)
+              setMessageFocusMode(false)
             }
+          }}
+          onClose={() => {
+            setMessageFocusMode(false)
             setSelected_msg_for_focus_mode(null)
           }}
-          onClose={() => setSelected_msg_for_focus_mode(null)}
         />
       }
       {messageOptions &&
@@ -316,6 +459,8 @@ const Chat = () => {
           flex: 1,
         }}
         ref={flatListRef}
+        removeClippedSubviews={true}
+        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
         renderItem={({ item, index }) => (
           <Message 
             logged_user={logged_user} 
@@ -323,9 +468,11 @@ const Chat = () => {
             isMyLastMessage={isTheLastMessageMine(messages, item)}
             shouldShow={shouldShowAvatar(item, messages[index - 1])}
             room_icon={avatar}
+            bubble_color={bubble_color || '#5E4BFA'}
             isLast={item.id === messages[0].id}
             onLongPress={() => {
               setSelected_msg_for_focus_mode(item)
+              setMessageFocusMode(true)
             }}
           />
         )}
@@ -335,45 +482,31 @@ const Chat = () => {
         flexDirection: 'row',
         alignItems: 'flex-end',
         justifyContent: 'center',
-        //placeItems: 'end',
-        marginTop: 5,
         marginBottom:  insets.bottom? (insets.bottom + 10) : 5 || 5,
         gap: input && 7,
         paddingHorizontal: 5,
-        //paddingVertical: 5,
-        //borderWidth: 1,
-        //borderColor: 'white',
-        //backgroundColor: '#121212',
-        //borderTopWidth: 1,
-        //borderColor: '#1d1d1d',
         borderTopLeftRadius: 25,
         borderTopRightRadius: 25,
         borderRadius: 25,
       }}>
         <View style={{
           flex: 1,
-          //borderRadius: 25,
           minHeight: 45,
           backgroundColor: '#131313',
           paddingVertical: 5,
           paddingHorizontal: 5,
-          //paddingLeft: 5,
           flexDirection: 'row',
           alignItems: 'flex-end',
           justifyContent: 'center',
           gap: 7,
-          //width: '83%',
           borderRadius: 30,
-          //borderWidth: 1,
           borderColor: '#171717'
         }}>
           
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
-            //display: input && 'none',
             gap: 7,
-            
           }}>
             
            <TouchableOpacity
@@ -427,13 +560,13 @@ const Chat = () => {
             backgroundColor: '#1d1d1d',
           }}>
             <TextInput 
-              cursorColor='#6a69fe' 
+              cursorColor={bubble_color ?? '#6a69fe' }
               maxHeight={90} 
               value={input} 
-              onChangeText={(val) => setinput(val)} 
+              onChangeText={(val) => setinput(val)}
               placeholderTextColor='darkgray' 
               multiline 
-              selectionColor="#6a69fe"
+              selectionColor={bubble_color ?? '#6a69fe' }
               placeholder='Message here...' 
               style={{
                 flex: 1,
@@ -454,7 +587,6 @@ const Chat = () => {
                 borderRadius: 50,
                 alignItems: 'center',
                 justifyContent: 'center',
-                //backgroundColor: '#1d1d1d',
               }}
               onPress={ async () => {
                 await handleViber.Strong()
@@ -465,7 +597,6 @@ const Chat = () => {
               />
             </TouchableOpacity>
           </View>
-          
           <TouchableOpacity
             style={{
               height: 40,
@@ -473,20 +604,20 @@ const Chat = () => {
               borderRadius: 50,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: input? '#6a69fe' : '#1d1d1d',
-              paddingTop: input? 2.5 : undefined,
-              paddingRight: input? 2.5 : undefined,
+              backgroundColor: input.trim()? (bubble_color || '#6a69fe') : '#1d1d1d',
+              paddingTop: input.trim()? 2.5 : undefined,
+              paddingRight: input.trim()? 2.5 : undefined,
             }}
             onPress={ async () => {
-              input && await handleViber.Light()
-              input && setinput('')
-              input && send()
+              input.trim() && await handleViber.Light()
+              input.trim() && setinput('')
+              input.trim() && send()
             }}>
-            {input? 
+            {input.trim()? 
               <HugeiconsIcon 
                 icon={SentIcon} 
                 fill={'white'}
-                color={'#6a69fe'}
+                color={bubble_color ?? '#6a69fe'}
               /> : 
               <AudioLines 
                 color='white'

@@ -1,6 +1,6 @@
 //import Image from '../components/reusables/Image';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, ActivityIndicator, FlatList, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Modal, ActivityIndicator, FlatList, Pressable, Dimensions, TouchableOpacity } from 'react-native';
 import * as MediaLibrary from "expo-media-library";  
 import TabSwitcher from '@/components/reusables/tabSwitcher'
 import { FlashList } from '@shopify/flash-list'
@@ -11,7 +11,7 @@ import { ArrowLeft } from 'lucide-react-native'
 
 const { width, height } = Dimensions.get('window');
 
-export const UseMediaPicker = ({onClose}) => {
+export const UseMediaPicker = ({onClose, onPick, scopes=['All']}) => {
   const [globalLoading, setGlobalLoading] = useState<boolean>(true)
   const [batchLoading, setBatchLoading] = useState<boolean>(false)
   const safeInsets = useSafeAreaInsets()
@@ -97,6 +97,7 @@ export const UseMediaPicker = ({onClose}) => {
           alignSelf: 'center',
           //width: '95%',
           //marginBottom: 10,
+          display: scopes.length && scopes.includes('All') && scopes.length == 1? undefined : scopes.length == 1 && !scopes.includes('All')? 'none' : undefined,
         }} options={['Photos', 'Videos']}/>
         <View style={{
           flex: 1,
@@ -112,24 +113,23 @@ export const UseMediaPicker = ({onClose}) => {
           style={{
             flex: 1,
           }}
-          contentContainerStyle={{
-            backgroundColor: 'black',
-            justifyContent: 'space-around',
-          }}
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           keyExtractor={(item) => item.id}
           renderItem={({item, index: i}) => (
-            <View style={{
+            <TouchableOpacity onPress={() => onPick(item)} style={{
               height: width / 2,
-              width: width / 3.1,
-              marginHorizontal: 2,
-              marginBottom: 3,
+              width: width / 3,
+              padding: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}>
               {item.mediaType == 'photo'? <Image source={{uri: item.uri}} style={{
                 flex: 1,
+                //borderRadius: 10,
+                width: '100%',
               }}/> : null}
-            </View>
+            </TouchableOpacity>
           )}
         />
       </View>

@@ -1,19 +1,29 @@
 import Image from './Image';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions, ImageBackground } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native'
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Image02Icon, MicIcon, SettingsIcon, CallAdd02Icon, Mic02Icon, AddCircleIcon } from '@hugeicons/core-free-icons';
+import { backgroundImage } from '@/utils/backgrounds'
 
 const { width, height } = Dimensions.get('window');
 
-const ThemeMiniScreen = ({name = 'Name', myColor='#6a69fe', avatar, bg_opacity}) => {
+const ThemeMiniScreen = ({name = 'Name', bubble_color = '#5E4BFA', avatar, bg_opacity, background}) => {
   const [opacityValue, setOpacityValue] = React.useState(bg_opacity)
+  const [bubble, setBubble_color] = React.useState(bubble_color)
+  const [bg_uri, setBg_uri] = useState(background)
   
   React.useEffect(() => {
     setOpacityValue(bg_opacity)
   }, [bg_opacity])
   
+  React.useEffect(() => {
+    setBubble_color(bubble_color)
+  }, [bubble_color])
+  
+  React.useEffect(() => {
+    setBg_uri(background)
+  }, [background])
   
   const messages = [
     {
@@ -24,14 +34,14 @@ const ThemeMiniScreen = ({name = 'Name', myColor='#6a69fe', avatar, bg_opacity})
     {
       content: "When changing the bubble color, it's only available for you",
       side: 'right',
-      color: myColor
+      color: bubble
     },
   ]
   
   return (
     <ImageBackground imageStyle={{
       opacity: opacityValue
-    }} source={{uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ9JohhdOwVkWIenjINcSm62489tnbGS21EuKSW7nNd8g&s=10'}} resizeMode='cover' style={{
+    }} source={backgroundImage(bg_uri)} resizeMode='cover' style={{
       height: 450,
       width: 230,
       borderRadius: 20,

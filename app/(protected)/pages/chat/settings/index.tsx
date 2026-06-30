@@ -40,7 +40,7 @@ import {
   AlertIcon,
   Delete02Icon,
   CopyIcon,
-  VolumeMute02Icon,
+  NotificationOff01Icon,
   TimeHalfPassIcon
 } from '@hugeicons/core-free-icons';
 
@@ -87,12 +87,12 @@ const Settings = () => {
           })
         },
         { 
-          label: "Forwardings",
-          icon: <HugeiconsIcon color='white' icon={LinkForwardIcon}/>,
-        },
-        { 
-          label: "Mute",
-          icon: <HugeiconsIcon color='white' icon={VolumeMute02Icon}/>,
+          label: "Mute notifications",
+          icon: <HugeiconsIcon color='white' icon={NotificationOff01Icon}/>,
+          action: () => router.push({
+            pathname: '/pages/chat/settings/mute',
+            params: {id, avatar, name, chat_id}
+          })
         },
       ]
     },

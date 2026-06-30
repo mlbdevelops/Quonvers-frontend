@@ -6,10 +6,11 @@ interface SwitchProps {
   defaultValue: boolean,
   onChange: () => void,
   thumbIcon: React.ReactNode,
-  enabled: boolean
+  enabled: boolean,
+  oneWayChange: boolean
 }
 
-const Switch = ({defaultValue = false, onChange, thumbIcon, enabled = true}: SwitchProps) => {
+const Switch = ({defaultValue = false, onChange, thumbIcon, enabled = true, oneWayChange = false}: SwitchProps) => {
   
   const [value, setValue] = useState<boolean | null>(defaultValue)
   const { handleViber } = haptics()
@@ -21,8 +22,8 @@ const Switch = ({defaultValue = false, onChange, thumbIcon, enabled = true}: Swi
   return (
     <Pressable onPress={ async () => {
       enabled && await handleViber.Strong()
-      enabled && typeof onChange == 'function' && onChange(!prev)
-      enabled && setValue((prev) => !prev)
+      enabled && typeof onChange == 'function' && onChange(!value)
+      enabled && (!oneWayChange && setValue((prev) => !prev))
     }} style={{
       width: 50,
       height: 30,

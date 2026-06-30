@@ -21,10 +21,12 @@ import { socket } from '@/hooks/sockets/socket_provider';
 import { localMsgStore } from '@/utils/MessageServices/index'
 import { MessageStatus } from '@/utils/MessageServices'
 import { createChat } from "@/utils/MessageServices/CreateChat"
+import { UpdateMessage } from "@/utils/MessageServices/UpdateMessage"
 import PushNotif from '@/utils/notifications'
 import TabSwitcher from '@/components/reusables/tabSwitcher'
-import MessageVanish from '@/utils/commands/MessageVanish'
-
+import SetChatDisapearsAtSetting from '@/utils/commands/MessageVanish'
+import SetDisapearsAt from '@/utils/commands/UpdateMessageExpiry'
+import chatContext from '@/hooks/chatContext'
 export default function messagesScreen(){
   const { handleViber } = haptics()
   const [chats, setChats] = useState([])
@@ -39,6 +41,10 @@ export default function messagesScreen(){
   const isProcessing = useRef(false);
   const commandQueue = useRef([])
   const isCommandQueueProcessing = useRef(false)
+  const statusQueue = useRef([])
+  const isStatusProcessing = useRef(false)
+  const messageCommands = useRef([])
+  const messageCommandsIsProcessing = useRef(false)
   
   const onRefresh = useCallback( async () => {
     try {
@@ -61,14 +67,14 @@ export default function messagesScreen(){
         while ((msg = messageQueue.current.shift())) {
           if (!msg) continue;
           
-          const senderId = msg.sender_id;
+          const senderId = msg?.sender_id;
           
           const existingMember = await db.getFirstAsync(
             'SELECT chat_id FROM chat_members WHERE user_id = ?',
             [senderId]
           );
           
-          const finalChatId = existingMember?.chat_id || msg?.chat_id;
+          const finalChatId = existingMember?.chat_id ?? msg?.chat_id;
           
           if (!existingMember?.chat_id) {
             let userData = msg.sender_data;
@@ -84,8 +90,8 @@ export default function messagesScreen(){
             chat_id: finalChatId,
             sender_id: senderId,
             ...msg, 
-          });
-          await PushNotif('New message', msg.content)
+          }, chatContext?.activeChatRoomId);
+          //await PushNotif('New message', msg.content)
           socket.emit('message:delivered', {
             msg_id: msg.id, toUser: senderId, at: Date.now(), status: 'Delivered',
           });
@@ -117,7 +123,7 @@ export default function messagesScreen(){
         let c
         while((c = commandQueue.current.shift())){
           if(!c.type) continue
-          c.type === 'message_vanish' && await MessageVanish(c)
+          c.type === 'message_vanish' && await SetChatDisapearsAtSetting(c)
         }
       } catch (error) {
         console.error(error);
@@ -138,21 +144,72 @@ export default function messagesScreen(){
   }, [])
   
   useEffect(() => {
-    const handleStatus = async (data) => {
-      try {
-        await MessageStatus(data.msg_id, data.status, data.at);
-      } catch (e) {
-        console.error("Status Update Error:", e);
+    const handleStatus = async () => {
+      isStatusProcessing.current = true
+      let status
+      while((status = statusQueue.current.shift())){
+        try {
+          await MessageStatus(status.msg_id, status.status, status.at);
+          SetDisapearsAt(status.msg_id)
+        } catch (e) {
+          console.error("Status Update Error:", e);
+        }finally{
+          isStatusProcessing.current = false
+          if(statusQueue.current.length > 0) handleStatus()
+        }
       }
     };
-    socket.on('message:status', handleStatus);
+    
+    const addToQueue = async (status) => {
+      statusQueue.current.push(status)
+      if(!isStatusProcessing.current) handleStatus()
+    }
+    socket.on('message:status', addToQueue);
   }, []);
+  
+  useEffect(() => {
+    const processMsgCommands = async () => {
+      messageCommandsIsProcessing.current = true
+      try {
+        let mcommand
+        while((mcommand = messageCommands.current.shift())){
+          await UpdateMessage(mcommand)
+        }
+      } catch (error) {
+        console.error(error);
+      }finally{
+        messageCommandsIsProcessing.current = false
+        if(messageCommands.current.length > 0) processMsgCommands()
+      }
+    }
+    
+    const addToQueue = (data) => {
+      messageCommands.current.push(data)
+      if(!messageCommandsIsProcessing.current) processMsgCommands()
+    }
+    socket.on('deleteMessage:foreveryone:receive', addToQueue)
+  }, [])
+  
+  
+  const getMsgs = async () => {
+    const db = await getDb()
+    const dm = await db.getAllAsync(`
+      SELECT disappears_at
+      FROM messages
+      WHERE disappears_at <= ?
+    `, [Date.now()])
+    console.log(dm)
+  }
   
   const getChatsFromDb = async () => {
     const db = await getDb();
-    //return save_chats_locally()
     // mc = my chat
-    // r = recipient 
+    // r = recipient
+    // c = chat
+    // m = message
+    // dm = disappearing message
+    // ct = chat theme
+    // u = user
     const chats = await db?.getAllAsync(`  
       SELECT  
         c.id,  
@@ -162,70 +219,49 @@ export default function messagesScreen(){
         r.nickname AS recipient_nickname,  
         c.muted AS isMuted,  
         c.last_message_id,  
-        c.last_message_preview,  
-        c.last_message_at,  
-        c.last_message_sender_id,  
-        c.created_at,  
-        c.read_receipts,  
-        c.pinned_at,  
+        m.content AS last_message_preview,  
+        m.created_at AS last_message_at,  
+        m.sender_id AS last_message_sender_id,
+        m.status AS last_message_status,
+        m.deleted AS last_msg_deleted,
+        c.created_at,
+        c.pinned,
         c.archived,
-        mc.unread_count,
-        dm.disappearing_millisecs AS msg_vanish_millis
+        dm.disappearing_millisecs AS msg_vanish_millis,
+        ct.bubble_color,
+        ct.bg_uri,
+        ct.bg_opacity AS brightness,
+        c.has_unread,
+        c.muted,
+        c.last_change_timestamp
       FROM chats c  
       JOIN chat_members r ON r.chat_id = c.id  
       JOIN chat_members mc ON mc.chat_id = c.id  
       JOIN users u ON u.user_id = r.user_id  
-      LEFT JOIN disappear_setting dm ON dm.chat_id = c.id  
+      LEFT JOIN disappear_setting dm ON dm.chat_id = c.id
+      LEFT JOIN chat_theme ct ON ct.chat_id = c.id
+      LEFT JOIN messages m ON m.id = c.last_message_id
       WHERE  
         r.user_id != ?
         AND mc.user_id = ?
         AND c.status = 'accepted'
       GROUP BY c.id  
-      ORDER BY c.pinned_at DESC, c.last_message_at DESC
+      ORDER BY c.last_message_at DESC
     `, [user.id, user.id]);
     setChats([...new Set([...chats])])
-    setLoading(false)
   };
   
   const getChats = async () => {
     try {
       setLoading(true)
-      return await getChatsFromDb()
-      const res = await trans('/api/chat/get_chat_list', {
-        useToken: true,
-        method: 'GET',
-        errMSg: 'Failed to load chats, please retry'
-      })
-      if (res.code == 200 && res.data) {
-        setChats((prev) => {
-          const newChats = [...prev, ...res.data]
-          return newChats
-        })
-      }
-      setLoading(false)
-      setNetworkProbs(false)
+      await getChatsFromDb()
     } catch (error) {
       setLoading(false)
       toast('Failed to load chats, please retry')
       console.log(error);
-      setNetworkProbs(true)
+    }finally{
+      setLoading(false)
     }
-  }
-  
-  const save_chats_locally = async () => {
-    const db = await getDb()
-    
-    const logc = await db.getAllAsync(`
-      SELECT * FROM chats
-    `,[])
-    
-    /*const logc = await db.getAllAsync(`
-      DROP TABLE messages
-    `,[])
-    const log = await db.getAllAsync(`
-      DROP TABLE chats
-    `,[])*/
-    console.log('Index log =>> ', logc);
   }
   
   useEffect(() => {
@@ -235,11 +271,7 @@ export default function messagesScreen(){
   }, [])
   
   return(
-    <View className='flex-1 bg-[#0a0a0a] flex items-center'
-    >
-      <Modal visible={showModal} presentationStyle='pageSheet' onRequestClose={() => setShowModal(false)}>
-        <TouchableOpacity onPress={() => setShowModal(false)}><Text>Close</Text></TouchableOpacity>
-      </Modal>
+    <View className='flex-1 bg-[#0a0a0a] flex items-center'>
       <Toaster position={'bottom'}/>
       <View style={{
         height: 50,
@@ -272,7 +304,7 @@ export default function messagesScreen(){
             }}>
             <Ellipsis size={20} color='white'/>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => getChats()}>
+          <TouchableOpacity onPress={() => getMsgs()}>
             <Image avatar style={{
               height: 26,
               width: 26,
@@ -328,7 +360,7 @@ export default function messagesScreen(){
             marginHorizontal: 15,
             width: '92%',
             marginTop: 10,
-            gap: 15
+            gap: 12
           }}
           options={['Messages', 'Unread', 'Favorite']}
         />

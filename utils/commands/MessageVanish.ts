@@ -1,15 +1,16 @@
 import { getDb } from '@/storage/db';
 import AppEvent, { Events } from '@/utils/eventEmitter'
 
-export default async function MessageVanish(c) {
+export default async function SetChatDisapearsAtSetting(c) {
   try {
     const db = await getDb()
     const check = await db.getFirstAsync(`
       SELECT 
-        dm.chat_id
+        dm.chat_id AS dm_chat_id,
+        cm.chat_id AS cm_chat_id
       FROM 
         chat_members cm
-      RIGHT JOIN 
+      LEFT JOIN
         disappear_setting dm 
           ON 
             dm.chat_id = cm.chat_id
@@ -17,8 +18,9 @@ export default async function MessageVanish(c) {
       [c.sender_id]
     ) || {}
     
-    if(!check?.chat_id){
+    if(!check?.dm_chat_id){
       console.log('Adding record')
+      console.log(check)
       await db.runAsync(`
         INSERT INTO disappear_setting(
           chat_id,
@@ -28,7 +30,7 @@ export default async function MessageVanish(c) {
         )
         VALUES(?, ?, ?, ?)
       `, [
-        check.chat_id,
+        check.cm_chat_id,
         c.value.duration,
         c.value.ui_index,
         c.sender_id
@@ -43,7 +45,7 @@ export default async function MessageVanish(c) {
         c.value.duration,
         c.value.ui_index,
         c.sender_id,
-        check.chat_id
+        check.cm_chat_id
       ])
     }
   } catch (error) {

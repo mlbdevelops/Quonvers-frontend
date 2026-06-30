@@ -7,7 +7,9 @@ export const Events = {
   REQUEST_SUBMISSION: 'friend_request_submission',
   MSG_SEND: 'message_send',
   NICKNAME_CHANGE: 'nickname_change',
-  MSG_VANISH: 'message_vanish'
+  MSG_VANISH: 'message_vanish',
+  LAST_CHANGE_TIMESTAMP: 'last_chat_change_timestamp',
+  MUTE_CHAT: 'mute_chat',
 }
 
 export default AppEvent

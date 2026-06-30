@@ -15,7 +15,8 @@ interface MessageProps {
   disappears_at?: number,
   to: string,
   room_type: string,
-  created_at: number | null
+  created_at: number | null,
+  deleted
 } 
 
 export const localMsgStore = async ({
@@ -30,8 +31,10 @@ export const localMsgStore = async ({
   disappears_at,
   to,
   room_type = 'private',
-  created_at
-} : MessageProps) => {
+  created_at,
+  disappearing_millisecs,
+  deleted
+} : MessageProps, activeChatRoomId: string | null = null) => {
   try {
     const db = await getDb();
     const message_id = uuidv4();
@@ -50,8 +53,6 @@ export const localMsgStore = async ({
       [sender_id]
     );
     
-    const vanish_at = Date.now() + parseInt(disappears_at)
-    
     const message = {
       id: finalId,
       chat_id: isLogged? chat_id : (existingMember?.chat_id ?? chat_id),
@@ -60,11 +61,14 @@ export const localMsgStore = async ({
       type,
       content_url: content_url || null,
       reply_to: reply_to || null,
-      status: sender_id === user.id ? 'Sending' : 'Delivered',
-      created_at: finalCreatedAt,
-      updated_at: finalCreatedAt,
-      disappears_at: vanish_at,
-      status_at: timestamp
+      status: isLogged ? 'Sending' : 'Delivered',
+      created_at: Number(finalCreatedAt),
+      updated_at: Number(finalCreatedAt),
+      disappears_at: null,
+      status_at: Number(timestamp),
+      disappearing_millisecs: Number(disappearing_millisecs),
+      room_type,
+      deleted
     };
     
     const checkIfAlreadyExist = await db?.getFirstAsync('SELECT id FROM messages WHERE id = ?', [message.id]);
@@ -72,8 +76,8 @@ export const localMsgStore = async ({
     
     await db?.runAsync(
       `INSERT INTO messages (
-        id, chat_id, sender_id, content, type, content_url, reply_to, status, created_at, updated_at, disappears_at, status_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, chat_id, sender_id, content, type, content_url, reply_to, status, created_at, updated_at, disappears_at, status_at, disappearing_millisecs, room_type, deleted
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         message.id,
         message.chat_id,
@@ -86,7 +90,10 @@ export const localMsgStore = async ({
         message.created_at,
         message.updated_at,
         message.disappears_at,
-        message.status_at
+        message.status_at,
+        message.disappearing_millisecs,
+        message.room_type,
+        message.deleted
       ]
     );
     
@@ -94,6 +101,15 @@ export const localMsgStore = async ({
       await db?.runAsync(
         `INSERT INTO pendings (message_id, toUser, room_type) VALUES (?, ?, ?)`,
         [message.id, to, room_type]
+      );
+    }
+    
+    if (message?.sender_id !== user?.id && activeChatRoomId !== message.chat_id) {
+      await db?.runAsync(
+        `UPDATE chats 
+        SET has_unread = ?
+        WHERE id = ?`,
+        [true, message?.chat_id]
       );
     }
    
@@ -106,8 +122,8 @@ export const localMsgStore = async ({
     }
     
     await db?.runAsync(
-      `UPDATE chats SET last_message_id = ?, last_message_preview = ?, last_message_at = ?, last_message_sender_id = ? WHERE id = ?`,
-      [message.id, content, message.created_at, message.sender_id, message.chat_id]
+      `UPDATE chats SET last_message_id = ?, last_change_timestamp = ? WHERE id = ?`,
+      [message.id, message?.created_at, message.chat_id]
     );
     AppEvent.emit(Events.MSG_SEND, message);
     return message;
@@ -116,9 +132,15 @@ export const localMsgStore = async ({
   }
 };
 
-export const deleteMessage = async (id) => {
-  const db = await getDb();
-  await db?.runAsync('DELETE FROM messages WHERE id = ?',[id])
-  await db?.runAsync('DELETE FROM pendings WHERE message_id = ?',[id])
-  
+export const deleteMessage = async (message_id, chat_id, updateLastChatTo) => {
+  try {
+    const db = await getDb();
+    await db?.runAsync('DELETE FROM messages WHERE id = ?',[message_id])
+    await db?.runAsync('DELETE FROM pendings WHERE message_id = ?',[message_id])
+    if(updateLastChatTo) await db?.runAsync('UPDATE chats SET last_message_id = ? WHERE id = ?', [updateLastChatTo.id, chat_id])
+  } catch (error) {
+    console.error(error);
+  }finally{
+    if(updateLastChatTo) AppEvent.emit(Events.MSG_SEND, {...updateLastChatTo, disable_ui_update: true})
+  }
 }

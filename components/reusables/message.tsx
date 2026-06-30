@@ -9,7 +9,7 @@ import { shouldShowAvatar } from '../../utils/logics/is_same_sender.ts'
 import AppEvent, { Events } from '@/utils/eventEmitter'
 import DateFormat from '@/utils/day'
 
-const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, isLast, room_icon}) => {
+const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, isLast, room_icon, bubble_color}) => {
   const [showTimestamp, setShowTimestamp] = useState(false)
   const [msgStatus, setMsgStatus] = useState(item.status)
   const [msgStatusAt, setMsgStatusAt] = useState(item.status_at)
@@ -22,12 +22,11 @@ const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, i
   useEffect(() => {
     AppEvent.on(Events.MSG_STATUS_UPDATE, (e) => {
       if (e.msg_id === item.id) {
-        setMsgStatus(e.status)
-        setMsgStatusAt(e.at)
+        !e?.isEdit && setMsgStatus(e.status)
+        !e?.isEdit && setMsgStatusAt(e.at)
       }
     })
   }, [])
-  
   
   return (
     <Pressable 
@@ -48,15 +47,17 @@ const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, i
       }}/>}
       <View style={{
         ...item.sender_id === logged_user? styles.msgRight.msgTextRight : styles.msgLeft.msgTextLeft,
+        backgroundColor: item.deleted? (item.sender_id == logged_user? `${bubble_color}80` : '#22222290') : (item.sender_id == logged_user? bubble_color : '#222222'),
       }}>
         <Text style={{
-          color: 'white',
+          color: item.deleted? 'darkgrey' : 'white',
           //fontSize: hasAnyAlphabet()? 14.5 : (50 - (item.content.length * 4)),
           padding: hasAnyAlphabet()? 0 : undefined,
           borderWidth: 0,
           borderColor: 'white',
           fontSize: 15,
-        }}>{item.content}</Text>
+          fontStyle: item.deleted && 'italic',
+        }}>{item.content && !item.deleted? item.content : 'Message has been deleted!'}</Text>
       </View>
       <Text style={{
         color: '#707070',
@@ -65,7 +66,13 @@ const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, i
         fontWeight: '460',
         fontSize: 13,
         marginTop: 1,
-      }}>{msgStatus} {msgStatus !== 'Sending' && DateFormat(msgStatusAt)}</Text>
+      }}>{msgStatus} {msgStatus !== 'Sending' && msgStatus !== 'Deleted' && DateFormat(msgStatusAt)} {item.edited && '• edited'}</Text>
+      <Text style={{
+        color: '#707070',
+        display: item.sender_id !== logged_user && item?.edited? undefined : 'none',
+        fontWeight: '460',
+        fontSize: 13,
+      }}>Edited</Text>
     </Pressable>
   );
 };
@@ -89,7 +96,7 @@ const styles = StyleSheet.create({
     gap: 8,
    
     msgTextLeft: {
-      backgroundColor: '#262626',
+      backgroundColor: '#383838',
       borderRadius: 20,
       //borderBottomLeftRadius: 5,
       paddingVertical: 9,

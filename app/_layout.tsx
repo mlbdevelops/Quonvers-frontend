@@ -13,6 +13,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { withLayoutContext } from 'expo-router'
 import { Toaster } from '@/components/reusables/systemToast'
 import { CustomAlertProvider as AlertProvider } from '@/hooks/alert'
+import { OptionListProvider } from '@/hooks/optionList'
 
 const { Navigator } = createStackNavigator()
 const Stack = withLayoutContext(Navigator)
@@ -21,42 +22,44 @@ const RootLayout = () => {
   return (
     <GestureHandlerRootView>
       <AlertProvider>
-        <SafeAreaView style={{
-          flex: 1,
-          backgroundColor: '#0a0a0a',
-          borderWidth: 0
-        }}>
-          <StatusBar style='auto'/>
-          <AuthProvider>
-            <Stack screenOptions={{
-                headerShown: false,
-                //gestureEnabled: true,
-                animation: 'slide_from_right',
-                //cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-                //transitionSpec: {
-                  //open: { duration: 0 },
-                 // close: { duration: 0 },
-                //},
-                cardStyle: { backgroundColor: '#0b0b0b', borderWidth: 0, },
-              }}>
-              
-              <Stack.Screen name='(protected)' options={{
-                headerShown: false,
-                animation: 'none'
-              }}/>
-              
-              <Stack.Screen name='authenticate' options={{
-                headerShown: false,
-                animation: 'none'
-              }}/>
-              
-              <Stack.Screen name='auth' options={{
-                headerShown: false,
-              }}/>
-              
-            </Stack>
-          </AuthProvider>
-        </SafeAreaView>
+        <OptionListProvider>
+          <SafeAreaView style={{
+            flex: 1,
+            backgroundColor: '#0a0a0a',
+            borderWidth: 0
+          }}>
+            <StatusBar style='auto'/>
+            <AuthProvider>
+              <Stack screenOptions={{
+                  headerShown: false,
+                  //gestureEnabled: true,
+                  animation: 'slide_from_right',
+                  //cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+                  //transitionSpec: {
+                    //open: { duration: 0 },
+                   // close: { duration: 0 },
+                  //},
+                  cardStyle: { backgroundColor: '#0b0b0b', borderWidth: 0, },
+                }}>
+                
+                <Stack.Screen name='(protected)' options={{
+                  headerShown: false,
+                  animation: 'none'
+                }}/>
+                
+                <Stack.Screen name='authenticate' options={{
+                  headerShown: false,
+                  animation: 'none'
+                }}/>
+                
+                <Stack.Screen name='auth' options={{
+                  headerShown: false,
+                }}/>
+                
+              </Stack>
+            </AuthProvider>
+          </SafeAreaView>
+        </OptionListProvider>
       </AlertProvider>
     </GestureHandlerRootView>
   );

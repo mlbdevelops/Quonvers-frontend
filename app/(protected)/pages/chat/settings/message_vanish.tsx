@@ -111,26 +111,34 @@ const MessageVanish = () => {
     <View style={styles.container}>
       <Header isBack styleType={'chat_settings'} title={'Disapearing messages'}/>
       <Toaster position={'center'}/>
-      <RadioList 
-        defaultIndex={newIndex || initialIndex}
-        ui_notifier_index={initialIndex}
-        onIndexChange={(e) => {
-          setNewIndex(e.index)
-          setSelectionText(e.title)
-        }}
-        options={options}
-        style={{
-          marginTop: 10,
-          paddingVertical: 15,
-        }}
-      />
+      <View style={{
+        width: '100%',
+        alignItems: 'center',
+        gap: 10
+      }}>
+        <RadioList 
+          defaultIndex={newIndex || initialIndex}
+          ui_notifier_index={initialIndex}
+          onIndexChange={(e) => {
+            setNewIndex(e.index)
+            setSelectionText(e.title)
+          }}
+          options={options}
+          style={{
+            marginTop: 10,
+            paddingVertical: 15,
+            borderRadius: 20,
+          }}
+        />
+        <Text style={{
+          color: 'darkgrey',
+          //textAlign: 'center',
+          maxWidth: '92%',
+        }}>When enabled, every new messages from this chat for everyone will disappear after they have been seen.</Text>
+      </View>
       <View style={{
         width: '92%',
       }}>
-        <Text style={{
-          color: 'darkgrey',
-          textAlign: 'center',
-        }}>When this is on, every new messages from this chat for everyone will be automatically deleted to the selected time</Text>
         <Button title={'Save'} titleStyle={{
           fontWeight: 'bold',
         }} onPress={saveEdit} style={{

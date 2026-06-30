@@ -11,7 +11,9 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useEffect } from 'react'
 import haptics from '../../hooks/haptics.js'
-const MsgFocus = ({msg, user, onClose, actionTaken}) => {
+import * as Clipboard from 'expo-clipboard';
+
+const MsgFocus = ({msg, user, onClose, actionTaken, bubble_color, showOnlyLabel = [], showReactions = true}) => {
   const scale = useSharedValue(0.8)
   const { handleViber } = haptics()
   
@@ -23,6 +25,11 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }))
+  
+  const copyToClipboard = async () => {
+    actionTaken('copy')
+    await Clipboard.setStringAsync(msg.content);
+  };
   
   const reactions = [
     '🔥',
@@ -38,36 +45,31 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
     {
       label: 'Reply',
       icon: <HugeiconsIcon icon={LinkBackwardIcon} color={'white'} size={20}   />,
-      type: 'lucide'
     },
     {
       label: 'Edit',
       icon: <HugeiconsIcon icon={PenIcon} color={'white'} size={20}   />,
-      display: msg.sender_id === user || false,
-      type: 'huge'
+      display: msg.sender_id === user && msg.status != 'Sending',
+      action: () => actionTaken('edit'),
     },
     {
       label: 'Copy',
       icon: <HugeiconsIcon icon={CopyIcon} color={'white'} size={20}   />,
-      type: 'huge'
+      action: async () => await copyToClipboard()
     },
     {
       label: 'Forward',
       icon: <HugeiconsIcon icon={LinkForwardIcon} color={'white'} size={20}   />,
-      type: 'huge'
     },
     {
       label: 'Pin',
       icon: <HugeiconsIcon icon={PinIcon} color={'white'} size={20}   />,
-      type: 'huge'
     },
     {
       label: 'Delete',
       icon: <HugeiconsIcon icon={Delete02Icon} color={'tomato'} size={20}/>,
-      display: msg.sender_id === user || false,
       danger: true,
       action: () => actionTaken('delete'),
-      type: 'huge'
     },
     /*{
       label: 'Info',
@@ -92,6 +94,7 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
     gap: 8,
     marginHorizontal: 16,
     justifyContent: 'space-evenly',
+    display: showReactions? undefined : 'none',
   }
   
   const actionsDiv = {
@@ -152,17 +155,20 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
             msg.sender_id === user? styles.msgRight : styles.msgLeft,
             animatedStyle
           ]}>
-            <Text style={{
+            {msg.content && <Text style={{
               fontSize: 15,
-              ...msg.sender_id === user? styles.msgRight.msgTextRight : styles.msgLeft.msgTextLeft
-            }}>{msg.content}</Text>
+              ...msg.sender_id === user? styles.msgRight.msgTextRight : styles.msgLeft.msgTextLeft,
+              ...msg.sender_id === user? {backgroundColor: bubble_color} : null,
+            }}>{msg.content}</Text>}
           </Animated.View>
           <Animated.View style={[actionsDiv, animatedStyle]}>
-          {options.map(({label, icon, danger, type, action}, i) => (
+          {options.map(({label, icon, danger, type, action, display}, i) => (
             <TouchableHighlight
               key={i}
               underlayColor='black'
-              onPress={action || onClose}
+              onPress={() => {
+                typeof action == 'function' && action()
+              }}
               style={{
                 width: '100%',
                 flexDirection: 'row',
@@ -172,6 +178,8 @@ const MsgFocus = ({msg, user, onClose, actionTaken}) => {
                 height: 45.5,
                 borderRadius: 100,
                 //backgroundColor: 'pink',
+                display: !display && typeof display == 'boolean' ? 'none' : undefined,
+                ...showOnlyLabel.length && {display: showOnlyLabel.includes(label)? undefined : 'none' },
               }}
             >
               <View style={{

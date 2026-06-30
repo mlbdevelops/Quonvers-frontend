@@ -25,8 +25,8 @@ export default function FloatingProfiles() {
 
   useEffect(() => {
     rotation.value = withRepeat(
-      withTiming(1000, {
-        duration: 30000,
+      withTiming(900, {
+        duration: 60000,
         easing: Easing.linear,
       }),
       -1
@@ -71,10 +71,8 @@ function OrbitAvatar({ avatar, index, total, rotation }) {
     const angle =
       ((index / total) * Math.PI * 2) +
       (rotation.value * Math.PI) / 180;
-
     const x = Math.cos(angle) * radius;
     const y = Math.sin(angle) * radius;
-
     return {
       transform: [
         { translateX: x },
@@ -90,7 +88,7 @@ function OrbitAvatar({ avatar, index, total, rotation }) {
           position: "absolute",
           width: 58,
           height: 58,
-          borderRadius: 999,
+          borderRadius: 20,
           overflow: "hidden",
           backgroundColor: "#222",
         },
@@ -102,6 +100,7 @@ function OrbitAvatar({ avatar, index, total, rotation }) {
         style={{
           width: "100%",
           height: "100%",
+          borderRadius: 20,
           backgroundColor: '#ffffff28',
         }}
       />

@@ -1,9 +1,11 @@
 export * from './SaveMessage';
 export * from './Attachments';
 export * from './Reactions';
-export * from './ReadReceipts';
 export * from './Status';
 export * from './sendMessage';
+export * from './ProcessRecipientMessages.ts';
+export * from './UpdateMessageSend.ts';
+export * from './UpdateMessage.ts';
 
 export const messageEmitter = {
   on: null,
