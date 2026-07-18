@@ -8,6 +8,8 @@ import { router } from 'expo-router'
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated'
 import Switch from '@/components/reusables/switch'
 import Sheet from '@/components/reusables/bottomSheet'
+import { BottomSheetView } from '@gorhom/bottom-sheet';
+
 export type OptionsProps = {
   label? : string,
   sub_label : string | null,
@@ -16,7 +18,7 @@ export type OptionsProps = {
   danger? : boolean
 }
 
-const SheetComp = ({onClose}) => {
+const SheetComp = ({onClose, showSheet = 'hide'}) => {
   const alert = useCustomAlert()
   const bottomRef = React.useRef(null)
   const defaultBottom = useSharedValue(200)
@@ -24,6 +26,12 @@ const SheetComp = ({onClose}) => {
   const openSheet = useCallback(() => {
     bottomRef.current?.snapToIndex(0);
   }, []);
+  
+  useEffect(() => {
+    if(typeof showSheet !== 'string') return
+    if(showSheet == 'hide') closeSheet()
+    if(showSheet == 'show') openSheet()
+  }, [showSheet])
 
   const closeSheet = useCallback(() => {
     bottomRef.current?.close();
@@ -131,7 +139,10 @@ const SheetComp = ({onClose}) => {
   ]
   
   return (
-    <Sheet ref={bottomRef}>
+    <Sheet ref={bottomRef} snaps={['50%']} index={1}>
+      <BottomSheetView style={{
+        zIndex: 1,
+      }}>
       {options.map(({label, sub_label, action, icon: Icon, danger}, i) => (
         <TouchableOpacity onPress={action} underlayColor='red' style={{
           padding: 12.5,
@@ -168,6 +179,7 @@ const SheetComp = ({onClose}) => {
           </View>
         </TouchableOpacity>
       ))}
+      </BottomSheetView>
     </Sheet>
   );
 };

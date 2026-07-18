@@ -3,17 +3,21 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import { useState, useEffect } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { TickDouble02Icon } from '@hugeicons/core-free-icons';
+import { TickDouble02Icon, PinIcon, Clock01Icon, PenIcon } from '@hugeicons/core-free-icons';
 import { CheckCheck, Check } from 'lucide-react-native'
 import { shouldShowAvatar } from '../../utils/logics/is_same_sender.ts'
 import AppEvent, { Events } from '@/utils/eventEmitter'
 import DateFormat from '@/utils/day'
+import MessageReply from './reply_message.tsx'
 
-const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, isLast, room_icon, bubble_color}) => {
+const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, isLast, room_icon, bubble_color, isPinned = false, reply_data}) => {
   const [showTimestamp, setShowTimestamp] = useState(false)
   const [msgStatus, setMsgStatus] = useState(item.status)
   const [msgStatusAt, setMsgStatusAt] = useState(item.status_at)
   const [reaction, setReaction] = useState([])
+  const isMe = item.sender_id === logged_user
+  const rpd = typeof reply_data == 'function' && reply_data()
+  const isReplyMsgMine = rpd?.sender_id === logged_user
   
   function hasAnyAlphabet() {
     return /\p{L}/u.test(item.content)
@@ -43,36 +47,100 @@ const Message = ({item, logged_user, onLongPress, shouldShow, isMyLastMessage, i
         width: 26.5,
         backgroundColor: '#1d1d1d',
         borderRadius: 50,
+        marginRight: 8,
         transform: shouldShow? 'scale(1)' : 'scale(0)'
       }}/>}
       <View style={{
-        ...item.sender_id === logged_user? styles.msgRight.msgTextRight : styles.msgLeft.msgTextLeft,
-        backgroundColor: item.deleted? (item.sender_id == logged_user? `${bubble_color}80` : '#22222290') : (item.sender_id == logged_user? bubble_color : '#222222'),
+        alignItems: isMe? 'flex-end' : 'flex-start',
       }}>
+        {rpd && <MessageReply 
+          isMyMessage={isMe}
+          isReplyMsgMine={isReplyMsgMine}
+          bubble_color={bubble_color}
+          reply_data={{...rpd}}/>
+        }
+        <View style={{
+          ...item.sender_id === logged_user? styles.msgRight.msgTextRight : styles.msgLeft.msgTextLeft,
+          backgroundColor: item.deleted? (item.sender_id == logged_user? `${bubble_color}80` : '#22222290') : (item.sender_id == logged_user? bubble_color : '#222222'),
+          //width: 10,
+        }}>
+          <Text style={{
+            color: item.deleted? 'darkgrey' : 'white',
+            //fontSize: hasAnyAlphabet()? 14.5 : (50 - (item.content.length * 4)),
+            padding: hasAnyAlphabet()? 0 : undefined,
+            borderWidth: 0,
+            borderColor: 'white',
+            fontSize: 15,
+            fontStyle: item.deleted && 'italic',
+          }}>{item.content && !item.deleted? item.content : 'Message has been deleted!'}</Text>
+          <View style={{
+            height: 20,
+            width: 20,
+            backgroundColor: '#3b3b3b',
+            borderRadius: 50,
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'absolute',
+            left: -23,
+            //right: !isMe? -23 : undefined,
+            //top: !isMe && item.edited? 0 : undefined,
+            bottom: 0,
+            display: item.sender_id === logged_user && isPinned? undefined : 'none',
+          }}>
+            <HugeiconsIcon size={10} icon={PinIcon} fill={'white'} color={'white'}/>
+          </View>
+        </View>
         <Text style={{
-          color: item.deleted? 'darkgrey' : 'white',
-          //fontSize: hasAnyAlphabet()? 14.5 : (50 - (item.content.length * 4)),
-          padding: hasAnyAlphabet()? 0 : undefined,
-          borderWidth: 0,
-          borderColor: 'white',
-          fontSize: 15,
-          fontStyle: item.deleted && 'italic',
-        }}>{item.content && !item.deleted? item.content : 'Message has been deleted!'}</Text>
+          color: '#707070',
+          display: item.sender_id === logged_user && isMyLastMessage || msgStatus == 'Sending'? undefined : 'none',
+          marginRight: 5,
+          fontWeight: '460',
+          fontSize: 13,
+          marginTop: 1,
+        }}>{msgStatus} {msgStatus !== 'Sending' && msgStatus !== 'Deleted' && DateFormat(msgStatusAt)} {item?.edited && !item?.deleted? '• edited' : undefined}</Text>
+        <View style={{
+          flexDirection: 'row',
+          gap: 5,
+          alignItems: 'center',
+          display: item.sender_id !== logged_user? undefined : 'none',
+          marginLeft: 3,
+        }}>
+          <View style={{
+            height: 17,
+            width: 17,
+            backgroundColor: '#3b3b3b',
+            borderRadius: 50,
+            alignItems: 'center',
+            justifyContent: 'center',
+            /* position: 'absolute',
+            left: isMe? -23 : undefined,
+            right: !isMe? -23 : undefined,
+            top: !isMe && item.edited? 0 : undefined,
+            bottom: !isMe && item.edited? undefined : 0, */
+            display: item.sender_id !== logged_user && isPinned? undefined : 'none',
+          }}>
+            <HugeiconsIcon size={10} icon={PinIcon} fill={'white'} color={'white'}/>
+          </View>
+          <View style={{
+            height: 20,
+            //width: 20,
+            //backgroundColor: '#3b3b3b90',
+            borderRadius: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            //paddingHorizontal: 6,
+            display: item.sender_id !== logged_user && item?.edited? undefined : 'none',
+          }}>
+            <Text style={{
+              color: '#707070',
+              display: item.sender_id !== logged_user && item?.edited? undefined : 'none',
+              fontWeight: '460',
+              fontSize: 13,
+            }}>Edited</Text>
+            {/*<HugeiconsIcon size={12.5} icon={PenIcon} fill={null} color={'white'}/>*/}
+          </View>
+        </View>
       </View>
-      <Text style={{
-        color: '#707070',
-        display: item.sender_id === logged_user && isMyLastMessage? undefined : 'none',
-        marginRight: 5,
-        fontWeight: '460',
-        fontSize: 13,
-        marginTop: 1,
-      }}>{msgStatus} {msgStatus !== 'Sending' && msgStatus !== 'Deleted' && DateFormat(msgStatusAt)} {item.edited && '• edited'}</Text>
-      <Text style={{
-        color: '#707070',
-        display: item.sender_id !== logged_user && item?.edited? undefined : 'none',
-        fontWeight: '460',
-        fontSize: 13,
-      }}>Edited</Text>
     </Pressable>
   );
 };
@@ -91,9 +159,8 @@ const styles = StyleSheet.create({
     marginVertical: 5,
     wordBreak: 'break-word',
     alignItems: 'flex-end',
-    display: 'flex',
     flexDirection: 'row',
-    gap: 8,
+    //gap: 8,
    
     msgTextLeft: {
       backgroundColor: '#383838',

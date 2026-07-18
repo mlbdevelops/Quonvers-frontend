@@ -41,9 +41,8 @@ const Login = () => {
       if (res.code == 803) {
         setAttempts(wrong_pass_attempts + 1)
         if(wrong_pass_attempts >= 2){
-          alert(null, 'The password entered is wrong, we recommend to reset your account password or contact us if you encounter any login issues.', [
-            {text: 'Contact us', primary : false},
-            {text: 'Try again', primary : false},
+          alert(null, 'The password entered is wrong, we recommend to reset your account password.', [
+            {text: 'Try again'},
             {text: 'Reset password', primary: true}
           ])
         }else{

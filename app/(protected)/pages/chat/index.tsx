@@ -3,10 +3,10 @@ import Image from '@/components/reusables/Image';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Pressable, Keyboard, FlatList, TouchableWithoutFeedback, ScrollView, Alert, ImageBackground, ActivityIndicator, BackHandler, ViewToken } from 'react-native';
 import Header from '@/components/header'
-import { ArrowLeft, Phone, PlusCircle, Smile, AudioLines, SendHorizontal, ArrowUp, CheckCheck } from 'lucide-react-native'
+import { ArrowLeft, Phone, PlusCircle, Smile, AudioLines, SendHorizontal, ArrowUp, CheckCheck, ChevronDown, ChevronUp, X } from 'lucide-react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { Image02Icon, MicIcon, SettingsIcon, VideoIcon, ImagesIcon, CallAdd02Icon, AudioWave01Icon, Mic02Icon, AddCircleIcon, SmileIcon, SentIcon, Check01Icon, CameraIcon, AddIcon, Unlink04Icon, Clock01Icon, TimeHalfPassIcon } from '@hugeicons/core-free-icons';
+import { Image02Icon, MicIcon, SettingsIcon, VideoIcon, ImagesIcon, CallAdd02Icon, AudioWave01Icon, Mic02Icon, AddCircleIcon, SmileIcon, SentIcon, Check01Icon, CameraIcon, AddIcon, Unlink04Icon, Clock01Icon, TimeHalfPassIcon, PinIcon } from '@hugeicons/core-free-icons';
 import { useState, useEffect, useRef, useContext, useCallback } from 'react'
 import haptics from '@/hooks/haptics'
 import trans from '@/hooks/fetch'
@@ -20,7 +20,7 @@ import EditMessage from '@/components/modal_pages/edit_message'
 import MessagesOptions from '@/components/modal_pages/chat_send_messages_options'
 import { useAnimatedKeyboard } from "react-native-keyboard-controller";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated'
-import { localMsgStore, deleteMessage, sendMessage, SendMessageUpdate } from '@/utils/MessageServices/index'
+import { localMsgStore, deleteMessage, sendMessage, SendMessageUpdate, GetChatParticipants } from '@/utils/MessageServices/index'
 import { storage } from '@/storage/mmkv'
 import shouldShowAvatar from '@/utils/logics/is_same_sender'
 import { socket } from '@/hooks/sockets/socket_provider'
@@ -36,6 +36,10 @@ import Info from '@/components/chat/info'
 import { backgroundImage } from '@/utils/backgrounds'
 import { useNavigation } from '@react-navigation/native';
 import { getDb } from '@/storage/db'
+import PinDelayList from '@/components/reusables/pindelaylist'
+import { getPinnedMessages } from '@/utils/MessageServices/pin'
+import DateFormat, { FormatChatDate } from '@/utils/day'
+import ReplyMessageKeyboard from '@/components/reusables/reply_message_keyboard'
 
 const Chat = () => {
   const context = useContext(ChatContext)
@@ -62,6 +66,37 @@ const Chat = () => {
   const optionList = useOptionList()
   const [isMsgEditing, setIsMsgEditing] = useState(false)
   const [messageFocusMode, setMessageFocusMode] = useState(false)
+  const [showPinDelayList, setShowPinDelayList] = useState(false)
+  const [pinnedMessages, setPinnedMessages] = useState([])
+  const [pinnedMessageIndex, setPinnedMessageIndex] = useState<number>(0)
+  const [isReplyingTo, setIsReplyingTo] = useState(null)
+  const [isKeyboardFocus, setIsKeyboardFocus] = useState(false)
+  const [participants, setParticipants] = useState([])
+  
+  useEffect(() => {
+    (async () => {
+      const pinnedList = await getPinnedMessages(chat_id)
+      setPinnedMessages(pinnedList)
+    })()
+  }, [])
+  
+  useEffect(() => {
+    (async () => {
+      const participantList = await GetChatParticipants(chat_id)
+      setParticipants(participantList)
+      console.log(findUserById(participants[0]?.user_id))
+    })()
+  }, [])
+  
+  useEffect(() => {
+    if(pinnedMessages.length <= 1) return
+    const interval = setInterval(() => {
+      setPinnedMessageIndex((prevIndex) => {
+        return pinnedMessages.length === prevIndex + 1 ? 0 : prevIndex + 1;
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [pinnedMessages.length]);
   
   useEffect(() => {
     navigation.addListener('focus', () => {
@@ -111,6 +146,14 @@ const Chat = () => {
     return verif.sender_id === logged_user && currentMassage.id === verif.id
   }
   
+  function findMessageById(msg_id) {
+    return messages.find(m => m.id === msg_id)
+  }
+  
+  function findUserById(user_id) {
+    return participants.find(u => u.user_id === user_id)
+  }
+  
   useEffect(() => {
     (async () => {
       if(chat_id){
@@ -151,7 +194,8 @@ const Chat = () => {
           ...updateMessages[getIndex],
           edited: data.edited,
           deleted: data.deleted,
-          content: data.content
+          content: data.content,
+          reply_to: data.deleted && null
         }
         return updateMessages
       })
@@ -188,16 +232,14 @@ const Chat = () => {
         type: 'text',
         content_url : null,
         attachments: [],
-        reply_to : null,
+        reply_to : isReplyingTo,
         disappearing_millisecs: msg_vanish_millis,
         to: recipient_id
       }, chat_id)
       if(!saveMsg?.content.trim()) return
       const sender = sender_data && JSON.parse(sender_data)
       setMessages((prev) => [saveMsg, ...prev])
-      if(socket?.id && saveMsg?.id){
-        await sendMessage({...saveMsg, toUser: recipient_id}, sender)
-      }
+      if(socket?.id && saveMsg?.id) await sendMessage({...saveMsg, toUser: recipient_id}, sender)
     } catch (error) {
       console.error(error);
     }
@@ -216,12 +258,13 @@ const Chat = () => {
     )
   }
   
+  const isLast = () => selected_msg_for_focus_mode === messages[0]
+  
   const deleteForMe = async () => {
     try {
       const findMessageIndex = messages?.findIndex(m => m.id == selected_msg_for_focus_mode.id)
-      const isLast = selected_msg_for_focus_mode === messages[0]
-      console.log(isLast)
-      const updateLastChatTo = isLast ? messages[findMessageIndex + 1] : null
+      console.log(isLast())
+      const updateLastChatTo = isLast() ? messages[findMessageIndex + 1] : null
       console.log(updateLastChatTo)
       await deleteMessage(selected_msg_for_focus_mode?.id, chat_id, updateLastChatTo)
     } catch (error) {
@@ -229,6 +272,8 @@ const Chat = () => {
     }finally{
       setMessages((prev) => prev.filter(msg => msg.id !== selected_msg_for_focus_mode.id))
       setSelected_msg_for_focus_mode(null)
+      setPinnedMessages((prev) => prev?.filter(m => m?.message_id !== selected_msg_for_focus_mode?.id))
+      setPinnedMessageIndex(0)
     }
   }
   
@@ -257,7 +302,7 @@ const Chat = () => {
         }
         return
       }
-      if(command.type == 'delete') await db.runAsync('UPDATE messages SET deleted = ?, content = ?, status = ? WHERE id = ?', [command?.type === 'delete', command?.newContent, command.type == 'delete' && 'Deleted', selected_msg_for_focus_mode?.id])
+      if(command.type == 'delete') await db.runAsync('UPDATE messages SET deleted = ?, content = ?, status = ?, reply_to = ? WHERE id = ?', [command?.type === 'delete', command?.newContent, command.type == 'delete' && 'Deleted', null, selected_msg_for_focus_mode?.id])
       if(command.type == 'edit') await db.runAsync('UPDATE messages SET edited = ?, content = ? WHERE id = ?', [command?.type === 'edit', command.newContent, selected_msg_for_focus_mode?.id])
       setMessages((prev) => {
         const getIndex = prev.findIndex(m => m.id === updateObj.message_id)
@@ -268,16 +313,17 @@ const Chat = () => {
           edited: command.type == 'edit',
           deleted: command.type == 'delete',
           content: command.newContent,
+          ...command.type == 'delete' && { reply_to: null },
           ...command.type == 'delete' && { status: 'Deleted' }
         }
         const emitObject = {
           msg_id: selected_msg_for_focus_mode.id,
-          status: command.type == 'delete' && 'Deleted', 
+          ...command.type == 'delete' && { status: 'Deleted' }, 
           //at: command.type == 'delete' && Date.now(),
           isEdit: command.type == 'edit'
         }
-        AppEvent.emit(Events.MSG_STATUS_UPDATE, emitObject)
-        AppEvent.emit(Events.MSG_SEND, {...updateMessages[getIndex], disable_ui_update: true})
+        isLast() && AppEvent.emit(Events.MSG_STATUS_UPDATE, emitObject)
+        isLast() && AppEvent.emit(Events.MSG_SEND, {...updateMessages[getIndex], disable_ui_update: true})
         return updateMessages
       })
       setSelected_msg_for_focus_mode(null)
@@ -300,14 +346,42 @@ const Chat = () => {
         onClose={() => setPickMedia(false)}
         onPick={() => setPickMedia(false)}
       />}
+      
+      {showPinDelayList && <PinDelayList 
+        msg={selected_msg_for_focus_mode}
+        logged_user={logged_user}
+        toUser={recipient_id}
+        onClose={() => setShowPinDelayList(false)} onPick={(delay) => {
+        try {
+          setPinnedMessages((prev) => [...prev, {
+            message_id: selected_msg_for_focus_mode?.id,
+            content: selected_msg_for_focus_mode?.content,
+            pinned_at: Date.now(),
+            unpin_at: delay?.pinObj?.unpin_at,
+            chat_id,
+          }])
+          console.log('Pinned until', delay.durationText)
+        } catch (error) {
+          console.error(error);
+        }finally{
+          setSelected_msg_for_focus_mode(null)
+          setShowPinDelayList(false)
+        }
+      }}/>}
+      
       {isMsgEditing && selected_msg_for_focus_mode && <EditMessage 
-        onClose={() => setIsMsgEditing(false)}
+        onClose={() => {
+          setIsMsgEditing(false)
+          setSelected_msg_for_focus_mode(null)
+        }}
         msg={selected_msg_for_focus_mode}
         bubble_color={bubble_color}
         logged_user={logged_user}
         returnData={
           ({newContent, message_id}) => {
-            MessageUpdate({type: 'edit', newContent, message_id })
+            MessageUpdate({ type: 'edit', newContent, message_id })
+            setIsMsgEditing(false)
+            setSelected_msg_for_focus_mode(null)
           }
         }
       />}
@@ -315,6 +389,7 @@ const Chat = () => {
         <MsgFocus 
           msg={selected_msg_for_focus_mode}
           user={logged_user}
+          recipient_id={recipient_id}
           showOnlyLabel={selected_msg_for_focus_mode.deleted? ['Delete'] : undefined }
           showReactions={selected_msg_for_focus_mode.deleted? false : undefined }
           bubble_color={bubble_color}
@@ -331,6 +406,21 @@ const Chat = () => {
             if (value == 'edit') {
               setIsMsgEditing(true)
               setMessageFocusMode(false)
+            }
+            if(value == 'pin') {
+              setMessageFocusMode(false)
+              setShowPinDelayList(true)
+            }
+            if(value == 'unpin') {
+              setMessageFocusMode(false)
+              setPinnedMessages((prev) => prev.filter(elems => elems?.message_id !== selected_msg_for_focus_mode.id))
+              setPinnedMessageIndex(0)
+              setSelected_msg_for_focus_mode(null)
+            }
+            if(value == 'reply'){
+              setMessageFocusMode(false)
+              setIsKeyboardFocus(true)
+              setIsReplyingTo(selected_msg_for_focus_mode.id)
             }
           }}
           onClose={() => {
@@ -352,6 +442,100 @@ const Chat = () => {
           }}
         />
       }
+      
+      {pinnedMessages.length > 0 && <View style={{
+        width: '100%',
+        height: 50,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#0a0a0a',
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: '#171717',
+        paddingHorizontal: 8,
+        justifyContent: 'space-between'
+      }}>
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          flex: 1,
+        }}>
+          <View style={{
+            gap: 5,
+            paddingVertical: 5,
+            display: pinnedMessages.length > 1? undefined : 'none',
+          }}>
+            {pinnedMessages.map((pm, i) => (
+              <View key={i} style={{
+                flex: 1,
+                width: 3,
+                borderRadius: 20,
+                backgroundColor: pinnedMessageIndex == i? 'white' : '#262626',
+              }}></View>
+            ))}
+          </View>
+          <View style={{
+            height: 37,
+            width: 37,
+            borderRadius: 15,
+            backgroundColor: '#262626',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <HugeiconsIcon size={20} icon={PinIcon} color={'white'}/>
+          </View>
+          <View style={{
+            //gap: 5
+            flex: 1,
+            //backgroundColor: 'blue',
+          }}>
+            <Text numberOfLines={1} style={{
+              color: 'white',
+              fontSize: 13,
+            }}>{DateFormat(pinnedMessages[pinnedMessageIndex]?.unpin_at).replace('in ', '').replace('a month', '30 days').replace('a day', '24 hours') + ' left'}</Text>
+            <Text numberOfLines={1} style={{
+              color: 'white',
+              fontWeight: 'bold',
+              maxWidth: '95%',
+              //backgroundColor: 'red',
+            }}>{pinnedMessages[pinnedMessageIndex]?.content}</Text>
+          </View>
+        </View>
+        <View style={{
+          gap: 1,
+          //backgroundColor: 'white',
+          display: pinnedMessages.length > 1? undefined : 'none',
+        }}>
+          <TouchableOpacity onPress={() => {
+            setPinnedMessageIndex((prevIndex) => {
+              return prevIndex == 0? pinnedMessages.length - 1 : prevIndex - 1;
+            })
+          }} style={{
+            height: 20,
+            width: 20,
+            borderRadius: 50,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <ChevronUp size={16} color={'white'}/>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => {
+            setPinnedMessageIndex((prevIndex) => {
+              return pinnedMessages.length === prevIndex + 1 ? 0 : prevIndex + 1;
+            })
+          }} style={{
+            height: 20,
+            width: 20,
+            borderRadius: 50,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <ChevronDown size={16} color={'white'}/>
+          </TouchableOpacity>
+        </View>
+      </View>}
+      
       <Header headerLeft={
         <View style={{
           flexDirection: 'row',
@@ -397,10 +581,7 @@ const Chat = () => {
           flexDirection: 'row',
           gap: 30
         }}>
-          <TouchableOpacity style={{
-            opacity: messages.length < 2 && .4,
-          }} key={1} onPress={() => {
-            if(messages.length < 2) return
+          <TouchableOpacity key={1} onPress={() => {
             handleViber.Strong()
             alert(null, 'Are you sure you want to make the call?', [
               {
@@ -425,10 +606,7 @@ const Chat = () => {
           }}>
             <HugeiconsIcon color='white' icon={CallAdd02Icon}/>
           </TouchableOpacity>
-          <TouchableOpacity style={{
-            opacity: messages.length < 2 && .4,
-          }} onPress={() => {
-            if(messages.length < 2) return
+          <TouchableOpacity onPress={() => {
             router.push({
               pathname: '/pages/chat/settings',
               params: {
@@ -468,6 +646,25 @@ const Chat = () => {
             isMyLastMessage={isTheLastMessageMine(messages, item)}
             shouldShow={shouldShowAvatar(item, messages[index - 1])}
             room_icon={avatar}
+            reply_data={() => {
+              if(!item?.reply_to) return null
+              const getMessage = findMessageById(item?.reply_to)
+              const getReceiver = findUserById(getMessage?.sender_id)
+              const isSenderMe = logged_user === item?.sender_id
+              const isReceiverMe = getMessage?.sender_id === logged_user
+              const isSenderAndReciverMe = isSenderMe && isReceiverMe
+              const getSender = findUserById(item.sender_id)
+              const receiverName = getReceiver?.nickname || getReceiver?.name
+              const senderName = getSender?.nickname || getSender?.name
+              const isSenderAndReciverNotMe = item?.sender_id === getMessage?.sender_id && getMessage.sender_id !== logged_user
+              
+              return {
+                ...getMessage,
+                reply_receiver_name: isReceiverMe && !isSenderMe? 'you' : isSenderAndReciverMe? 'yourself' : isSenderAndReciverNotMe? 'themself' : receiverName,
+                reply_sender_name: isSenderMe? 'You' : senderName?.trim()
+              }
+            }}
+            isPinned={pinnedMessages.find((i) => i.message_id == item.id)? true : false}
             bubble_color={bubble_color || '#5E4BFA'}
             isLast={item.id === messages[0].id}
             onLongPress={() => {
@@ -479,30 +676,46 @@ const Chat = () => {
       />
       <View style={{
         width: '100%',
-        flexDirection: 'row',
-        alignItems: 'flex-end',
+        //flexDirection: 'row',
+        //alignItems: 'flex-end',
         justifyContent: 'center',
         marginBottom:  insets.bottom? (insets.bottom + 10) : 5 || 5,
-        gap: input && 7,
+        //gap: input && 7,
         paddingHorizontal: 5,
         borderTopLeftRadius: 25,
         borderTopRightRadius: 25,
         borderRadius: 25,
+        //backgroundColor: 'yellow',
+        //height: 100,
+        
       }}>
+        
         <View style={{
-          flex: 1,
-          minHeight: 45,
+          //flex: 1,
+          //backgroundColor: 'blue',
+          alignItems: 'center',
+          //gap: 7,
+          borderRadius: 25,
           backgroundColor: '#131313',
-          paddingVertical: 5,
-          paddingHorizontal: 5,
-          flexDirection: 'row',
-          alignItems: 'flex-end',
-          justifyContent: 'center',
-          gap: 7,
-          borderRadius: 30,
           borderColor: '#171717'
         }}>
           
+          {isReplyingTo && <ReplyMessageKeyboard closeClick={() => {
+            setIsReplyingTo(null)
+            setIsKeyboardFocus(false)
+          }} msg={findMessageById(isReplyingTo)} reply_to={findMessageById(isReplyingTo)?.sender_id === logged_user? 'You' : name}/>}
+          
+          <View style={{
+            minHeight: 45,
+            padding: 5,
+            flexDirection: 'row',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            gap: 7,
+            borderRadius: 30,
+            borderColor: '#171717',
+            //backgroundColor: 'red',
+          }}>
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
@@ -514,14 +727,13 @@ const Chat = () => {
                 height: 40,
                 width: 40,
                 borderRadius: 50,
-                backgroundColor: '#1d1d1d' || '#343484',
+                backgroundColor: '#1f1f1f' || '#343484',
                 alignItems: 'center',
                 justifyContent: 'center',
-                opacity: messages.length < 2 && .4,
               }}
               onPress={ async () => {
-                messages.length >= 2 && await handleViber.Strong()
-                messages.length >= 2 && setMessageOptions(true)
+                await handleViber.Strong()
+                setMessageOptions(true)
               }}>
               <HugeiconsIcon 
                 icon={AddIcon} 
@@ -537,12 +749,11 @@ const Chat = () => {
                 borderRadius: 50,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: '#1d1d1d',
+                backgroundColor: '#1f1f1f',
                 display: input && 'none',
-                opacity: messages.length < 2 && .4,
               }}
               onPress={ async () => {
-                messages.length >= 2 && await handleViber.Strong()
+                await handleViber.Strong()
               }}>
               <HugeiconsIcon 
                 icon={CameraIcon} 
@@ -557,7 +768,7 @@ const Chat = () => {
             borderRadius: 20,
             minHeight: 35,
             padding: 3,
-            backgroundColor: '#1d1d1d',
+            backgroundColor: '#1f1f1f',
           }}>
             <TextInput 
               cursorColor={bubble_color ?? '#6a69fe' }
@@ -566,6 +777,7 @@ const Chat = () => {
               onChangeText={(val) => setinput(val)}
               placeholderTextColor='darkgray' 
               multiline 
+              autoFocus={isKeyboardFocus}
               selectionColor={bubble_color ?? '#6a69fe' }
               placeholder='Message here...' 
               style={{
@@ -604,7 +816,7 @@ const Chat = () => {
               borderRadius: 50,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: input.trim()? (bubble_color || '#6a69fe') : '#1d1d1d',
+              backgroundColor: input.trim()? (bubble_color || '#6a69fe') : '#1f1f1f',
               paddingTop: input.trim()? 2.5 : undefined,
               paddingRight: input.trim()? 2.5 : undefined,
             }}
@@ -612,6 +824,7 @@ const Chat = () => {
               input.trim() && await handleViber.Light()
               input.trim() && setinput('')
               input.trim() && send()
+              setIsReplyingTo(null)
             }}>
             {input.trim()? 
               <HugeiconsIcon 
@@ -624,6 +837,7 @@ const Chat = () => {
               /> 
             }
           </TouchableOpacity>
+          </View>
         </View>
       </View>
       

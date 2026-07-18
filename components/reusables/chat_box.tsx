@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
 import { useState, useEffect, useContext } from 'react'
 import AppEvent, { Events } from '@/utils/eventEmitter'
-import DateFormat from '@/utils/day'
+import DateFormat, { FormatChatDate } from '@/utils/day'
 import { storage } from '@/storage/mmkv'
 import { getDb } from '@/storage/db'
 import { socket } from '@/hooks/sockets/socket_provider';
@@ -70,7 +70,7 @@ export default function ChatBox({chat}) {
     
     const handleMsgStatusUpdate = async (e) => {
       await new Promise((rslv) => setTimeout(rslv, 50));
-      if (e.msg_id === last_message_id) setlast_msg_status(e.status);
+      if (e.msg_id === last_message_id) e.status && setlast_msg_status(e?.status);
     };
     
     const handleChatMuteUpdate = async (e) => {
@@ -162,7 +162,7 @@ export default function ChatBox({chat}) {
           style={{
             width: 50,
             height: 50,
-            borderRadius: 18,
+            borderRadius: 20,
           }}
         />
         
@@ -197,7 +197,7 @@ export default function ChatBox({chat}) {
             color: !has_unread? 'darkgray' : 'white',
             fontSize: 12,
             marginBottom: 4,
-          }}>{DateFormat(timestamp || chat?.last_change_timestamp, true)}</Text>
+          }}>{FormatChatDate(timestamp || chat?.last_change_timestamp, true)}</Text>
           <View style={{
             flexDirection: 'row',
             gap: 10,

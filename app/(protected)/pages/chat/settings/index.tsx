@@ -107,6 +107,10 @@ const Settings = () => {
         { 
           label: "Pinned messages",
           icon: <HugeiconsIcon color='white' icon={PinIcon}/>, 
+          action: () => router.push({
+            pathname: '/pages/chat/settings/pinned_messages',
+            params: {id, avatar, name, chat_id}
+          })
         },
         { 
           label: "Share contact",

@@ -8,11 +8,12 @@ type RadioListProp = {
   options: any[],
   onIndexChange: () => void,
   style: any,
+  itemStyle: any,
   ui_notifier_index: string | null | undefined,
   ui_notifier_text: string | null | undefined
 }
 
-const RadioList = ({defaultIndex = 0, index, onIndexChange, options = [], style, ui_notifier_index, ui_notifier_text}: RadioListProp) => {
+const RadioList = ({defaultIndex = 1, index, onIndexChange, options = [], style, ui_notifier_index, ui_notifier_text, itemStyle}: RadioListProp) => {
   const [initialIndex, setinitialIndex] = useState(defaultIndex)
   const { handleViber } = haptics()
   const [ui_index, setui_index] = useState(ui_notifier_index)
@@ -45,6 +46,7 @@ const RadioList = ({defaultIndex = 0, index, onIndexChange, options = [], style,
           gap: 10,
           padding: 10,
           justifyContent: 'space-between',
+          ...itemStyle
         }}>
           <View style={{
             flexDirection: 'row',
@@ -57,7 +59,7 @@ const RadioList = ({defaultIndex = 0, index, onIndexChange, options = [], style,
               borderRadius: 100,
               outlineWidth: 1.5,
               backgroundColor: i + 1 === initialIndex? '#6a69fe' : 'transparent',
-              borderWidth: 3,
+              borderWidth: 4,
               borderColor: '#1d1d1d',
               outlineColor: i + 1 === initialIndex? '#6a69fe' : 'white'
             }}></View>

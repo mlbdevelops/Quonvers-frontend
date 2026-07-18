@@ -6,6 +6,7 @@ export * from './sendMessage';
 export * from './ProcessRecipientMessages.ts';
 export * from './UpdateMessageSend.ts';
 export * from './UpdateMessage.ts';
+export * from './GetChatParticipants.ts';
 
 export const messageEmitter = {
   on: null,

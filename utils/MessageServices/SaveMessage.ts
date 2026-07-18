@@ -2,6 +2,7 @@ import { getDb } from '../../storage/db.ts';
 import { v4 as uuidv4 } from 'uuid';
 import AppEvent, { Events } from '@/utils/eventEmitter';
 import { storage } from '@/storage/mmkv'
+import { unpinMessage } from '@/utils/MessageServices/pin'
 
 interface MessageProps {
   id?: string
@@ -16,7 +17,8 @@ interface MessageProps {
   to: string,
   room_type: string,
   created_at: number | null,
-  deleted
+  deleted: boolean,
+  edited: boolean,
 } 
 
 export const localMsgStore = async ({
@@ -33,7 +35,8 @@ export const localMsgStore = async ({
   room_type = 'private',
   created_at,
   disappearing_millisecs,
-  deleted
+  deleted,
+  edited
 } : MessageProps, activeChatRoomId: string | null = null) => {
   try {
     const db = await getDb();
@@ -43,6 +46,7 @@ export const localMsgStore = async ({
     const finalId = id ?? message_id;
     const finalCreatedAt = created_at ?? timestamp;
     const isLogged = user.id === sender_id
+    console.log(activeChatRoomId)
     
     const existingMember = await db.getFirstAsync(
       `SELECT 
@@ -59,8 +63,8 @@ export const localMsgStore = async ({
       sender_id,
       content,
       type,
-      content_url: content_url || null,
-      reply_to: reply_to || null,
+      content_url: content_url,
+      reply_to: reply_to,
       status: isLogged ? 'Sending' : 'Delivered',
       created_at: Number(finalCreatedAt),
       updated_at: Number(finalCreatedAt),
@@ -68,7 +72,8 @@ export const localMsgStore = async ({
       status_at: Number(timestamp),
       disappearing_millisecs: Number(disappearing_millisecs),
       room_type,
-      deleted
+      deleted,
+      edited
     };
     
     const checkIfAlreadyExist = await db?.getFirstAsync('SELECT id FROM messages WHERE id = ?', [message.id]);
@@ -76,8 +81,8 @@ export const localMsgStore = async ({
     
     await db?.runAsync(
       `INSERT INTO messages (
-        id, chat_id, sender_id, content, type, content_url, reply_to, status, created_at, updated_at, disappears_at, status_at, disappearing_millisecs, room_type, deleted
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, chat_id, sender_id, content, type, content_url, reply_to, status, created_at, updated_at, disappears_at, status_at, disappearing_millisecs, room_type, deleted, edited
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         message.id,
         message.chat_id,
@@ -93,7 +98,8 @@ export const localMsgStore = async ({
         message.status_at,
         message.disappearing_millisecs,
         message.room_type,
-        message.deleted
+        message.deleted,
+        message.edited
       ]
     );
     
@@ -104,7 +110,8 @@ export const localMsgStore = async ({
       );
     }
     
-    if (message?.sender_id !== user?.id && activeChatRoomId !== message.chat_id) {
+    if (message?.sender_id !== user?.id && message?.chat_id !== activeChatRoomId) {
+      //console.log(activeChatRoomId, activeChatRoomId === message.chat_id, message.chat_id)
       await db?.runAsync(
         `UPDATE chats 
         SET has_unread = ?
@@ -137,6 +144,7 @@ export const deleteMessage = async (message_id, chat_id, updateLastChatTo) => {
     const db = await getDb();
     await db?.runAsync('DELETE FROM messages WHERE id = ?',[message_id])
     await db?.runAsync('DELETE FROM pendings WHERE message_id = ?',[message_id])
+    await unpinMessage(message_id)
     if(updateLastChatTo) await db?.runAsync('UPDATE chats SET last_message_id = ? WHERE id = ?', [updateLastChatTo.id, chat_id])
   } catch (error) {
     console.error(error);

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableWithoutFeedback, TouchableOpacity, TouchableHighlight } from 'react-native';
-import { Plus, Forward, Share, Copy, AlertTriangle, Trash2, Pen, MessageCircleReply, Type } from 'lucide-react-native';
+import { Plus, Forward, Share, Copy, AlertTriangle, Trash2, Pen, MessageCircleReply, Type, Ellipsis } from 'lucide-react-native';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { AddIcon, CopyIcon, EditIcon, LinkForwardIcon, Delete02Icon, PenIcon, AlertIcon, LinkBackwardIcon, PinIcon, InformationCircleIcon } from '@hugeicons/core-free-icons';
 import GlassView from "../glassView.tsx"
@@ -12,14 +12,30 @@ import Animated, {
 import { useEffect } from 'react'
 import haptics from '../../hooks/haptics.js'
 import * as Clipboard from 'expo-clipboard';
+import { getSinglePinnedMessage, unpinMessage } from '@/utils/MessageServices/pin'
+import { socket } from '@/hooks/sockets/socket_provider'
+import { useCustomAlert } from '@/hooks/alert'
 
-const MsgFocus = ({msg, user, onClose, actionTaken, bubble_color, showOnlyLabel = [], showReactions = true}) => {
+const MsgFocus = ({msg, user, onClose, actionTaken, bubble_color, showOnlyLabel = [], showReactions = true, pin_message, recipient_id}) => {
   const scale = useSharedValue(0.8)
   const { handleViber } = haptics()
+  const [isPinned, setIsPinned] = React.useState(null)
+  const alert = useCustomAlert()
   
   useEffect(() => {
     handleViber.Strong()
     scale.value = withTiming(1, { duration: 120 })
+  }, [])
+  
+  useEffect(() => {
+    setIsPinned(pin_message == 'unpin'? false : true)
+  }, [pin_message])
+  
+  useEffect(() => {
+    (async () => {
+      const getPinned = await getSinglePinnedMessage(msg?.id)
+      setIsPinned(getPinned)
+    })()
   }, [])
   
   const animatedStyle = useAnimatedStyle(() => ({
@@ -31,26 +47,39 @@ const MsgFocus = ({msg, user, onClose, actionTaken, bubble_color, showOnlyLabel 
     await Clipboard.setStringAsync(msg.content);
   };
   
-  const reactions = [
-    '🔥',
-    '❤️',
-    '👀',
-    '😂',
-    '😭',
-    '👎',
-    '☠️'
-  ]
+  const togglePinUnpin = async () => {
+    if(!isPinned) return actionTaken('pin')
+    if(!socket.connected) return alert('Unable to unpin, please connect to the internet and try again.')
+    const unpinObj = {
+      type: 'unpin_message',
+      sender_id: user,
+      toUser: recipient_id,
+      value: {
+        message_id: msg.id,
+        chat_id: msg.chat_id
+      }
+    }
+    console.log(unpinObj)
+    socket.emit('command:send', unpinObj)
+    unpinMessage(msg?.id)
+    actionTaken('unpin')
+  }
+  
+  const reactions = ['🔥','❤️','👀','😂','😭','👎','☠️']
   
   const options = [
     {
       label: 'Reply',
       icon: <HugeiconsIcon icon={LinkBackwardIcon} color={'white'} size={20}   />,
+      enabled: msg.status !== 'Sending',
+      action: () => actionTaken('reply'),
     },
     {
       label: 'Edit',
       icon: <HugeiconsIcon icon={PenIcon} color={'white'} size={20}   />,
       display: msg.sender_id === user && msg.status != 'Sending',
       action: () => actionTaken('edit'),
+      enabled: msg.sender_id == user && msg.created_at + 900000 > Date.now()
     },
     {
       label: 'Copy',
@@ -62,8 +91,11 @@ const MsgFocus = ({msg, user, onClose, actionTaken, bubble_color, showOnlyLabel 
       icon: <HugeiconsIcon icon={LinkForwardIcon} color={'white'} size={20}   />,
     },
     {
-      label: 'Pin',
-      icon: <HugeiconsIcon icon={PinIcon} color={'white'} size={20}   />,
+      label: isPinned? 'Unpin' : 'Pin',
+      icon: <HugeiconsIcon icon={PinIcon} color={'white'} size={20} />,
+      action: () => togglePinUnpin(),
+      enabled: msg.status !== 'Sending'
+      
     },
     {
       label: 'Delete',
@@ -71,16 +103,11 @@ const MsgFocus = ({msg, user, onClose, actionTaken, bubble_color, showOnlyLabel 
       danger: true,
       action: () => actionTaken('delete'),
     },
-    /*{
-      label: 'Info',
-      icon: <HugeiconsIcon icon={InformationCircleIcon} color={'white'} size={20}   />,
-      type: 'huge'
-    },
     {
-      label: 'Report',
-      icon: <HugeiconsIcon icon={AlertIcon} color={'white'} size={20}   />,
-      type: 'lucide'
-    },*/
+      label: 'More',
+      icon: <Ellipsis color={'white'} size={20}/>,
+      action: () => actionTaken('more'),
+    },
   ]
   
   const reactionDiv = {
@@ -162,12 +189,12 @@ const MsgFocus = ({msg, user, onClose, actionTaken, bubble_color, showOnlyLabel 
             }}>{msg.content}</Text>}
           </Animated.View>
           <Animated.View style={[actionsDiv, animatedStyle]}>
-          {options.map(({label, icon, danger, type, action, display}, i) => (
+          {options.map(({label, icon, danger, type, action, display, enabled}, i) => (
             <TouchableHighlight
               key={i}
-              underlayColor='black'
+              underlayColor={typeof enabled == 'boolean' && !enabled? 'transparent' : 'black'}
               onPress={() => {
-                typeof action == 'function' && action()
+                typeof enabled === 'boolean' && !enabled? undefined : typeof action == 'function' && action()
               }}
               style={{
                 width: '100%',
@@ -177,6 +204,7 @@ const MsgFocus = ({msg, user, onClose, actionTaken, bubble_color, showOnlyLabel 
                 paddingHorizontal: 4,
                 height: 45.5,
                 borderRadius: 100,
+                opacity: typeof enabled == 'boolean' && !enabled? .3 : 1,
                 //backgroundColor: 'pink',
                 display: !display && typeof display == 'boolean' ? 'none' : undefined,
                 ...showOnlyLabel.length && {display: showOnlyLabel.includes(label)? undefined : 'none' },

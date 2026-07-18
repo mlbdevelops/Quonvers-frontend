@@ -215,20 +215,10 @@ const CreateMoment = () => {
         cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
       }}/>
         
-        <BottomSheet
-          ref={sheetRef}
-          index={-1} // closed by default
-          snapPoints={snapPoints}
-          enablePanDownToClose={true}
-        >
-          <View style={{ padding: 20 }}>
-            <Text style={{
-              color: 'white',
-            }}>Hello 👋 This is a bottom sheet</Text>
-          </View>
-        </BottomSheet>
-        
-        {options? <SheetComp onClose={() => setOptions(false)}/> : null}
+        <SheetComp 
+          onClose={() => setOptions(false)}
+          showSheet={options? 'show' : 'hide'}
+        />
         
         <View style={{
           flexDirection: 'row',

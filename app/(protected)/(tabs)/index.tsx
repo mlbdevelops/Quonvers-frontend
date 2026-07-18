@@ -27,6 +27,8 @@ import TabSwitcher from '@/components/reusables/tabSwitcher'
 import SetChatDisapearsAtSetting from '@/utils/commands/MessageVanish'
 import SetDisapearsAt from '@/utils/commands/UpdateMessageExpiry'
 import chatContext from '@/hooks/chatContext'
+import { pin_message, unpinMessage } from '@/utils/MessageServices/pin'
+
 export default function messagesScreen(){
   const { handleViber } = haptics()
   const [chats, setChats] = useState([])
@@ -90,7 +92,7 @@ export default function messagesScreen(){
             chat_id: finalChatId,
             sender_id: senderId,
             ...msg, 
-          }, chatContext?.activeChatRoomId);
+          }, chatContext);
           //await PushNotif('New message', msg.content)
           socket.emit('message:delivered', {
             msg_id: msg.id, toUser: senderId, at: Date.now(), status: 'Delivered',
@@ -124,6 +126,8 @@ export default function messagesScreen(){
         while((c = commandQueue.current.shift())){
           if(!c.type) continue
           c.type === 'message_vanish' && await SetChatDisapearsAtSetting(c)
+          c.type === 'pin_message' && await pin_message(c.value.message_id, c.value.unpin_at, c.value.chat_id)
+          c.type === 'unpin_message' && await unpinMessage(c.value.message_id)
         }
       } catch (error) {
         console.error(error);
@@ -187,9 +191,8 @@ export default function messagesScreen(){
       messageCommands.current.push(data)
       if(!messageCommandsIsProcessing.current) processMsgCommands()
     }
-    socket.on('deleteMessage:foreveryone:receive', addToQueue)
+    socket.on('messageCommands:receive', addToQueue)
   }, [])
-  
   
   const getMsgs = async () => {
     const db = await getDb()

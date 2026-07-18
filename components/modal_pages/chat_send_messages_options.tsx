@@ -30,25 +30,13 @@ const MessagesOptions = ({onClose}) => {
       onPress: () => onClose('media_pick')
     },
     {
-      label: 'Camera',
-      icon: <HugeiconsIcon color='white' size={20} icon={CameraIcon}/>
-    },
-    {
-      label: 'GIFs & Stickers',
-      icon: <HugeiconsIcon color='white' size={20}  icon={SmileIcon}/>
-    },
-    {
       label: 'Attachment',
       icon: <HugeiconsIcon color='white' size={20}  icon={LinkIcon}/>
     },
     {
       label: 'Contact',
       icon: <HugeiconsIcon color='white' size={20}  icon={UserIcon}/>
-    },
-    {
-      label: 'Location',
-      icon: <HugeiconsIcon color='white' size={20}  icon={LocationIcon}/>
-    },
+    }
   ]
   
   return (

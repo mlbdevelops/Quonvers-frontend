@@ -11,9 +11,8 @@ export default function ChatSkeleton() {
         style={{
           backgroundColor: '#262626',
           width: 50,
-          borderRadius: 50,
           height: 50,
-          display: 'flex',
+          borderRadius: 20,
           alignItems: 'center',
           justifyContent: 'center',
         }}

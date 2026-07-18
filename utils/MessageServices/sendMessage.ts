@@ -19,8 +19,9 @@ export async function sendMessage(msg, recipient) {
     if (checkIfExist?.id) {
       socket.emit("message:send", msg, async (ack) => {
         if (!ack?.ok) return retry(msg);
-        await MessageStatus(msg.id, 'Sent', ack.at);
+        console.log('ACK =>> ', ack)
         await db?.runAsync('DELETE FROM pendings WHERE message_id = ?',[msg.id])
+        await MessageStatus(msg.id, 'Sent', ack.at);
       });
     }else{
       const userString = storage.getString('user')
@@ -39,5 +40,7 @@ export async function sendMessage(msg, recipient) {
     }
   } catch (err) {
     console.error('Error:', err);
+  }finally{
+    console.log('MESSAGE SENT OR KEPT FOR LATER RECONNECT')
   }
 }

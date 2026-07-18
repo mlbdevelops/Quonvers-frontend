@@ -99,16 +99,16 @@ const EditMessage = ({msg, bubble_color, onClose, send, logged_user, returnData}
                 width: 40,
                 borderRadius: 50,
                 alignItems: 'center',
-                opacity: input.trim() && input.trim() !== msg.content? 1 : .5,
+                opacity: input?.trim() && input?.trim() !== msg.content? 1 : .5,
                 justifyContent: 'center',
                 backgroundColor: bubble_color || '#6a69fe',
                 paddingTop: 2.5,
                 paddingRight: 2.5,
               }}
               onPress={ async () => {
-                input.trim() && input.trim() !== msg.content && await handleViber.Light()
-                input.trim() && input.trim() !== msg.content && setinput('')
-                input.trim() && input.trim() !== msg.content && returnData({newContent: input, message_id: msg?.id})
+                input?.trim() && input?.trim() !== msg.content && await handleViber.Light()
+                input?.trim() && input?.trim() !== msg.content && setinput('')
+                input?.trim() && input?.trim() !== msg.content && returnData({newContent: input?.trim(), message_id: msg?.id})
               }}>
               <HugeiconsIcon 
                 icon={SentIcon} 

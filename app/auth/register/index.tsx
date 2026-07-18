@@ -32,7 +32,7 @@ const register = () => {
       })
       
       if(res.code == 904){
-        alert(null, 'The email entered is already used, try to login instead.', [
+        alert(null, 'The email entered is already used.', [
           {
             text: 'Try again',
             onPress: () => setIsFocused(true),

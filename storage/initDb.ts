@@ -162,6 +162,13 @@ export const initDatabase = async () => {
       command TEXT NOT NULL
     );
     
+    CREATE TABLE IF NOT EXISTS pinned_messages(
+      message_id TEXT NOT NULL UNIQUE,
+      pinned_at INTEGER NOT NULL,
+      unpin_at INTEGER NOT NULL,
+      chat_id TEXT NOT NULL
+    );
+    
     -- INDEXES
     CREATE INDEX IF NOT EXISTS idx_messages_chat_created ON messages(chat_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
